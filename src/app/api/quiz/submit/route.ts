@@ -3,6 +3,7 @@ import { z } from "zod";
 import { handleApiError, requireAccount, requireOwnedLearner } from "@/lib/api-helpers";
 import { getQuestionById } from "@/lib/repo/content";
 import { recordAttempt } from "@/lib/repo/quiz";
+import { invalidateAnalyticsCache } from "@/lib/ai";
 
 const SubmitSchema = z.object({
   learnerId: z.string(),
@@ -40,6 +41,13 @@ export async function POST(req: NextRequest) {
         correctIndex: question.correctIndex,
         explanation: question.explanation,
       });
+    }
+
+    if (results.length > 0) {
+      // New attempts just landed — drop the cached AI analysis so the
+      // learner's next dashboard/analytics view reflects them immediately
+      // instead of a stale pre-quiz snapshot.
+      await invalidateAnalyticsCache(body.learnerId);
     }
 
     const correctCount = results.filter((r) => r.isCorrect).length;
