@@ -1,0 +1,119 @@
+// -----------------------------------------------------------------------
+// PRODUCTION BLUEPRINT — not wired up in this codebase.
+//
+// The app runs on sql.js (an embedded, pure-WASM SQLite) so that it works
+// in any sandbox without native binaries or engine downloads — see
+// src/lib/db.ts for why. This file is the 1:1 target schema for a real
+// deployment on Postgres.
+//
+// To switch to it:
+//   1. npm install prisma @prisma/client
+//   2. Set DATABASE_URL to your Postgres instance
+//   3. npx prisma migrate dev --name init
+//   4. Replace src/lib/db.ts's `run` / `all` / `get` helpers (and the
+//      src/lib/repo/*.ts callers, which only use those three functions)
+//      with the generated Prisma client. Business logic in src/lib/ai.ts
+//      and the API routes does not need to change.
+// -----------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  email                 String    @unique
+  passwordHash          String
+  plan                  String    @default("family_20")
+  maxLearners           Int       @default(20)
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  subscriptionStatus    String    @default("trialing")
+  trialEndsAt           DateTime?
+  createdAt             DateTime  @default(now())
+  learners              Learner[]
+}
+
+model Learner {
+  id               String        @id @default(cuid())
+  accountId        String
+  account          Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  displayName      String
+  avatarColor      String        @default("#2a78d6")
+  currentLevelCode String        @default("N5")
+  targetLevelCode  String        @default("N1")
+  targetExamDate   DateTime?
+  createdAt        DateTime      @default(now())
+  attempts         QuizAttempt[]
+  insightCache     AiInsightCache?
+}
+
+model Level {
+  id          String        @id // 'N5' .. 'N1'
+  nameJa      String
+  nameEn      String
+  sortOrder   Int
+  vocabItems  VocabItem[]
+  grammarItems GrammarItem[]
+  questions   QuizQuestion[]
+}
+
+model VocabItem {
+  id              String @id @default(cuid())
+  levelId         String
+  level           Level  @relation(fields: [levelId], references: [id])
+  term            String
+  reading         String
+  meaningJa       String
+  meaningEn       String
+  exampleSentence String
+}
+
+model GrammarItem {
+  id              String @id @default(cuid())
+  levelId         String
+  level           Level  @relation(fields: [levelId], references: [id])
+  pattern         String
+  meaningEn       String
+  exampleSentence String
+}
+
+model QuizQuestion {
+  id            String        @id @default(cuid())
+  levelId       String
+  level         Level         @relation(fields: [levelId], references: [id])
+  category      String // vocabulary | grammar | listening | reading
+  prompt        String
+  choicesJson   String
+  correctIndex  Int
+  explanation   String
+  attempts      QuizAttempt[]
+
+  @@index([levelId, category])
+}
+
+model QuizAttempt {
+  id         String       @id @default(cuid())
+  learnerId  String
+  learner    Learner      @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  questionId String
+  question   QuizQuestion @relation(fields: [questionId], references: [id])
+  levelId    String
+  category   String
+  isCorrect  Boolean
+  answeredAt DateTime     @default(now())
+
+  @@index([learnerId])
+}
+
+model AiInsightCache {
+  learnerId   String   @id
+  learner     Learner  @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  generatedAt DateTime
+  payloadJson String
+}
