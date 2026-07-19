@@ -341,3 +341,12 @@ export async function countTotalAttemptsAcrossAccount(accountId: string): Promis
   );
   return row[0]?.c ?? 0;
 }
+/**
+ * Drop the cached analytics for a learner. Call this right after new quiz
+ * attempts are recorded so the next dashboard/analytics view recomputes
+ * fresh numbers instead of serving a stale pre-quiz snapshot for up to
+ * CACHE_TTL_MS. Cheap: it's a single-row delete, not a recompute.
+ */
+export async function invalidateAnalyticsCache(learnerId: string): Promise<void> {
+  await run("DELETE FROM ai_insight_cache WHERE learner_id = ?", [learnerId]);
+}
