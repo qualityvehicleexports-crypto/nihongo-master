@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getLearner } from "@/lib/repo/learners";
 import QuizRunner from "@/components/QuizRunner";
+import { getDictionary } from "@/lib/i18n";
 
 export default async function QuizPage({
   params,
@@ -25,6 +26,7 @@ export default async function QuizPage({
       levelId={levelId}
       category={category}
       learnerName={learner.display_name}
+      dict={getDictionary(learner.ui_language)}
     />
   );
 }
