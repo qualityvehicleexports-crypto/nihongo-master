@@ -47,4 +47,42 @@ export default function PassProbabilityGauge({
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-      <svg width={140} height={80}
+      <svg width={140} height={80} viewBox="0 0 140 80">
+        <path
+          d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
+          fill="none"
+          stroke="var(--gridline)"
+          strokeWidth={10}
+          strokeLinecap="round"
+        />
+        <path
+          d={`M ${cx - r} ${cy} A ${r} ${r} 0 ${largeArc} 1 ${endX} ${endY}`}
+          fill="none"
+          stroke={status.color}
+          strokeWidth={10}
+          strokeLinecap="round"
+        />
+      </svg>
+      <div>
+        <div className="flex items-center gap-2">
+          <span
+            className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white"
+            style={{ background: status.color }}
+            aria-hidden
+          >
+            {status.glyph}
+          </span>
+          <p className="text-3xl font-bold" style={{ color: "var(--text-primary)" }}>
+            {percent}%
+          </p>
+          <span className="text-sm font-semibold" style={{ color: status.color }}>
+            {status.label}
+          </span>
+        </div>
+        <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+          {weeks !== null && weeks > 0 ? t(dict.gauge.weeksEstimate, { weeks }) : ""} {note}
+        </p>
+      </div>
+    </div>
+  );
+}

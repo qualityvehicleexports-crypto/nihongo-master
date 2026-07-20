@@ -17,3 +17,13 @@ export default function RefreshInsightsButton({ learnerId, dict }: { learnerId: 
           router.refresh();
         } finally {
           setBusy(false);
+        }
+      }}
+      disabled={busy}
+      className="rounded-full border px-4 py-2 text-sm font-semibold disabled:opacity-60"
+      style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
+    >
+      {busy ? dict.analytics.refreshing : dict.analytics.refresh}
+    </button>
+  );
+}
