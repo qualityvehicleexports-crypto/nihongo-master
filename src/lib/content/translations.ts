@@ -1,215 +1,88 @@
-// Sample JLPT-style content for all five levels (N5 -> N1).
-//
-// IMPORTANT: this is a representative sample for demoing the product, not the
-// full JLPT syllabus. Real N5-N1 coverage runs to several thousand vocabulary
-// items, ~200-600 grammar patterns, and licensed listening audio per level.
-// Swap this file (or feed the same shape into the DB) once real curriculum
-// content / a licensed content partner is in place.
+// Auto-generated translations of vocab/grammar meanings for the 10 non-Japanese,
+// non-English learner languages (English lives in meaning_en on the row itself).
+// Keyed by the exact Japanese term/pattern string so seed.ts can look up each
+// item's meanings_json at insert time. See src/lib/i18n/languages.ts for codes.
+import type { LanguageCode } from "../i18n/languages";
 
-export type LevelCode = "N5" | "N4" | "N3" | "N2" | "N1";
+type MeaningMap = Partial<Record<Exclude<LanguageCode, "ja" | "en">, string>>;
 
-export const LEVELS: { id: LevelCode; nameJa: string; nameEn: string; sortOrder: number }[] = [
-  { id: "N5", nameJa: "N5(入門)", nameEn: "N5 — Beginner", sortOrder: 1 },
-  { id: "N4", nameJa: "N4(初級)", nameEn: "N4 — Elementary", sortOrder: 2 },
-  { id: "N3", nameJa: "N3(中級)", nameEn: "N3 — Intermediate", sortOrder: 3 },
-  { id: "N2", nameJa: "N2(中上級)", nameEn: "N2 — Upper Intermediate", sortOrder: 4 },
-  { id: "N1", nameJa: "N1(上級)", nameEn: "N1 — Advanced", sortOrder: 5 },
-];
-
-export interface VocabSeed {
-  term: string;
-  reading: string;
-  meaningJa: string;
-  meaningEn: string;
-  example: string;
-}
-
-export interface GrammarSeed {
-  pattern: string;
-  meaningEn: string;
-  example: string;
-}
-
-export type QuestionCategory = "vocabulary" | "grammar" | "listening" | "reading";
-
-export interface QuestionSeed {
-  category: QuestionCategory;
-  prompt: string;
-  choices: string[];
-  correctIndex: number;
-  explanation: string;
-}
-
-interface LevelContent {
-  vocab: VocabSeed[];
-  grammar: GrammarSeed[];
-  questions: QuestionSeed[];
-}
-
-export const CONTENT: Record<LevelCode, LevelContent> = {
-  N5: {
-    vocab: [
-      { term: "食べる", reading: "たべる", meaningJa: "食事をする", meaningEn: "to eat", example: "朝ごはんを食べます。" },
-      { term: "学校", reading: "がっこう", meaningJa: "勉強するところ", meaningEn: "school", example: "毎日学校へ行きます。" },
-      { term: "水", reading: "みず", meaningJa: "飲み物", meaningEn: "water", example: "水を飲みます。" },
-      { term: "大きい", reading: "おおきい", meaningJa: "サイズが大きい", meaningEn: "big", example: "これは大きい犬です。" },
-      { term: "友達", reading: "ともだち", meaningJa: "仲がいい人", meaningEn: "friend", example: "友達と遊びます。" },
-      { term: "毎日", reading: "まいにち", meaningJa: "日々", meaningEn: "every day", example: "毎日日本語を勉強します。" },
-      { term: "電車", reading: "でんしゃ", meaningJa: "乗り物", meaningEn: "train", example: "電車で会社に行きます。" },
-      { term: "忙しい", reading: "いそがしい", meaningJa: "時間がない", meaningEn: "busy", example: "今週はとても忙しいです。" },
-    ],
-    grammar: [
-      { pattern: "〜ています", meaningEn: "ongoing action / current state", example: "今、勉強しています。" },
-      { pattern: "〜たいです", meaningEn: "want to do", example: "日本へ行きたいです。" },
-      { pattern: "〜ないでください", meaningEn: "please don't do", example: "ここで写真を撮らないでください。" },
-      { pattern: "〜前に", meaningEn: "before doing", example: "寝る前に歯を磨きます。" },
-      { pattern: "〜ことができます", meaningEn: "can do", example: "私は漢字を読むことができます。" },
-    ],
-    questions: [
-      { category: "vocabulary", prompt: "「食べる」の意味はどれですか。", choices: ["to eat", "to drink", "to sleep", "to run"], correctIndex: 0, explanation: "「食べる」= to eat。" },
-      { category: "vocabulary", prompt: "「忙しい」の意味はどれですか。", choices: ["quiet", "busy", "beautiful", "boring"], correctIndex: 1, explanation: "「忙しい」= busy。" },
-      { category: "vocabulary", prompt: "「でんしゃ」を漢字で書くとどれですか。", choices: ["電車", "電話", "自転車", "飛行機"], correctIndex: 0, explanation: "でんしゃ = 電車 (train)。" },
-      { category: "grammar", prompt: "「毎日日本語を＿＿。」空欄に入るのはどれですか。", choices: ["勉強します", "勉強たいです", "勉強ています", "勉強前に"], correctIndex: 0, explanation: "習慣を表す現在形「勉強します」が自然です。" },
-      { category: "grammar", prompt: "「ここで写真を＿＿ください。」空欄に入るのはどれですか。", choices: ["撮って", "撮らないで", "撮る", "撮りたい"], correctIndex: 1, explanation: "禁止のお願いは「〜ないでください」。" },
-      { category: "grammar", prompt: "「寝る＿＿歯を磨きます。」空欄に入るのはどれですか。", choices: ["前に", "後で", "ながら", "とき、"], correctIndex: 0, explanation: "「〜前に」= before doing。" },
-      { category: "listening", prompt: "（会話）A「明日、何をしますか。」B「友達と映画を見ます。」\n質問：Bさんは明日何をしますか。", choices: ["勉強します", "映画を見ます", "電車に乗ります", "水を飲みます"], correctIndex: 1, explanation: "Bは「映画を見ます」と答えています。" },
-      { category: "listening", prompt: "（会話）A「学校まで何で行きますか。」B「電車で行きます。」\n質問：学校までの交通手段はどれですか。", choices: ["バス", "電車", "自転車", "徒歩"], correctIndex: 1, explanation: "「電車で行きます」と言っています。" },
-      { category: "listening", prompt: "（会話）A「今日は忙しいですか。」B「いいえ、あまり忙しくないです。」\n質問：Bさんは今日忙しいですか。", choices: ["とても忙しい", "あまり忙しくない", "わからない", "少し忙しい"], correctIndex: 1, explanation: "「あまり忙しくない」= not very busy。" },
-      { category: "reading", prompt: "（文章）わたしは毎日六時に起きます。朝ごはんを食べてから、電車で学校へ行きます。\n質問：「わたし」はいつ起きますか。", choices: ["五時", "六時", "七時", "八時"], correctIndex: 1, explanation: "「毎日六時に起きます」とあります。" },
-      { category: "reading", prompt: "（文章）土曜日、友達と大きい公園へ行きました。天気がよかったです。\n質問：どこへ行きましたか。", choices: ["学校", "公園", "駅", "図書館"], correctIndex: 1, explanation: "「大きい公園へ行きました」とあります。" },
-      { category: "reading", prompt: "（文章）田中さんは水を三本買いました。\n質問：田中さんは何を買いましたか。", choices: ["パン", "水", "電車の切符", "本"], correctIndex: 1, explanation: "「水を三本買いました」とあります。" },
-    ],
-  },
-  N4: {
-    vocab: [
-      { term: "経験", reading: "けいけん", meaningJa: "実際にやったこと", meaningEn: "experience", example: "海外で働いた経験があります。" },
-      { term: "準備", reading: "じゅんび", meaningJa: "前もって用意すること", meaningEn: "preparation", example: "旅行の準備をします。" },
-      { term: "説明", reading: "せつめい", meaningJa: "わかるように話すこと", meaningEn: "explanation", example: "先生が文法を説明します。" },
-      { term: "世界", reading: "せかい", meaningJa: "全ての国", meaningEn: "world", example: "世界には多くの国があります。" },
-      { term: "台風", reading: "たいふう", meaningJa: "強い風の嵐", meaningEn: "typhoon", example: "台風が近づいています。" },
-      { term: "用意", reading: "ようい", meaningJa: "準備すること", meaningEn: "readiness", example: "夕食の用意をしています。" },
-      { term: "天気予報", reading: "てんきよほう", meaningJa: "天気の予測", meaningEn: "weather forecast", example: "天気予報を見ます。" },
-      { term: "招待", reading: "しょうたい", meaningJa: "呼ぶこと", meaningEn: "invitation", example: "パーティーに招待されました。" },
-    ],
-    grammar: [
-      { pattern: "〜そうです", meaningEn: "looks like / seems", example: "雨が降りそうです。" },
-      { pattern: "〜ようになる", meaningEn: "come to be able to", example: "漢字が読めるようになりました。" },
-      { pattern: "〜たら", meaningEn: "if / when", example: "時間があったら、電話してください。" },
-      { pattern: "〜のに", meaningEn: "although / even though", example: "頑張ったのに、失敗しました。" },
-      { pattern: "〜ばかり", meaningEn: "only / just", example: "彼はゲームばかりしています。" },
-    ],
-    questions: [
-      { category: "vocabulary", prompt: "「準備」の意味はどれですか。", choices: ["preparation", "invitation", "experience", "explanation"], correctIndex: 0, explanation: "「準備」= preparation。" },
-      { category: "vocabulary", prompt: "「台風」の意味はどれですか。", choices: ["typhoon", "rainbow", "snow", "earthquake"], correctIndex: 0, explanation: "「台風」= typhoon。" },
-      { category: "vocabulary", prompt: "「しょうたい」を漢字で書くとどれですか。", choices: ["招待", "紹介", "招介", "承知"], correctIndex: 0, explanation: "しょうたい = 招待 (invitation)。" },
-      { category: "grammar", prompt: "「空が暗いです。雨が＿＿。」空欄に入るのはどれですか。", choices: ["降りそうです", "降ったら", "降るのに", "降りばかり"], correctIndex: 0, explanation: "見た目から予想する時は「〜そうです」。" },
-      { category: "grammar", prompt: "「毎日練習して、漢字が読める＿＿なりました。」空欄に入るのはどれですか。", choices: ["ように", "そうに", "のに", "ばかりに"], correctIndex: 0, explanation: "「〜ようになる」= come to be able to。" },
-      { category: "grammar", prompt: "「時間があっ＿＿、電話してください。」空欄に入るのはどれですか。", choices: ["たら", "ても", "のに", "ばかり"], correctIndex: 0, explanation: "「〜たら」= if / when。" },
-      { category: "listening", prompt: "（会話）A「明日のパーティー、行きますか。」B「招待されたので、行くつもりです。」\n質問：Bさんはどうしますか。", choices: ["行かない", "行くつもりです", "考え中です", "招待していません"], correctIndex: 1, explanation: "「行くつもりです」と答えています。" },
-      { category: "listening", prompt: "（会話）A「明日の天気はどうですか。」B「天気予報によると、台風が来るそうです。」\n質問：明日の天気はどうなりそうですか。", choices: ["晴れ", "台風が来る", "雪が降る", "変わらない"], correctIndex: 1, explanation: "「台風が来るそうです」と言っています。" },
-      { category: "listening", prompt: "（会話）A「旅行の準備はできましたか。」B「いいえ、まだ用意していません。」\n質問：Bさんの旅行の準備はどうですか。", choices: ["終わった", "まだしていない", "半分終わった", "必要ない"], correctIndex: 1, explanation: "「まだ用意していません」と言っています。" },
-      { category: "reading", prompt: "（文章）田中さんは海外で働いた経験があるので、英語で説明するのが上手です。\n質問：田中さんはなぜ英語の説明が上手ですか。", choices: ["学校で習ったから", "海外で働いた経験があるから", "本を読んだから", "先生だから"], correctIndex: 1, explanation: "「海外で働いた経験があるので」が理由です。" },
-      { category: "reading", prompt: "（文章）今週末、台風が来るそうです。天気予報を見て、旅行の予定を変えるかもしれません。\n質問：なぜ予定を変えるかもしれませんか。", choices: ["友達がいないから", "台風が来るかもしれないから", "お金がないから", "仕事があるから"], correctIndex: 1, explanation: "台風が来るという予報のためです。" },
-      { category: "reading", prompt: "（文章）山田さんは頑張って勉強したのに、試験に落ちてしまいました。\n質問：山田さんはどうでしたか。", choices: ["合格した", "頑張ったが不合格だった", "勉強しなかった", "試験を受けなかった"], correctIndex: 1, explanation: "「〜のに」は逆接：努力したのに結果が伴わなかった。" },
-    ],
-  },
-  N3: {
-    vocab: [
-      { term: "影響", reading: "えいきょう", meaningJa: "他に及ぼす作用", meaningEn: "influence", example: "天気は気分に影響します。" },
-      { term: "状況", reading: "じょうきょう", meaningJa: "その時の様子", meaningEn: "situation", example: "今の状況を説明してください。" },
-      { term: "判断", reading: "はんだん", meaningJa: "考えて決めること", meaningEn: "judgment", example: "冷静に判断します。" },
-      { term: "割合", reading: "わりあい", meaningJa: "全体に対する比率", meaningEn: "ratio / proportion", example: "女性の割合が増えています。" },
-      { term: "環境", reading: "かんきょう", meaningJa: "周りの状態", meaningEn: "environment", example: "働く環境を整えます。" },
-      { term: "対策", reading: "たいさく", meaningJa: "問題への対応", meaningEn: "countermeasure", example: "台風の対策をします。" },
-      { term: "傾向", reading: "けいこう", meaningJa: "そうなりやすい性質", meaningEn: "tendency", example: "若者の傾向を調べます。" },
-      { term: "維持", reading: "いじ", meaningJa: "そのまま保つこと", meaningEn: "maintenance", example: "健康を維持します。" },
-    ],
-    grammar: [
-      { pattern: "〜わけではない", meaningEn: "doesn't necessarily mean", example: "嫌いなわけではありません。" },
-      { pattern: "〜さえ〜ば", meaningEn: "as long as / if only", example: "時間さえあれば行けます。" },
-      { pattern: "〜にとって", meaningEn: "for / from the perspective of", example: "学生にとって試験は大切です。" },
-      { pattern: "〜おかげで", meaningEn: "thanks to", example: "先生のおかげで合格しました。" },
-      { pattern: "〜つつある", meaningEn: "in the process of", example: "状況は改善しつつあります。" },
-    ],
-    questions: [
-      { category: "vocabulary", prompt: "「判断」の意味はどれですか。", choices: ["judgment", "environment", "tendency", "maintenance"], correctIndex: 0, explanation: "「判断」= judgment。" },
-      { category: "vocabulary", prompt: "「割合」の意味はどれですか。", choices: ["ratio / proportion", "influence", "countermeasure", "situation"], correctIndex: 0, explanation: "「割合」= ratio / proportion。" },
-      { category: "vocabulary", prompt: "「たいさく」を漢字で書くとどれですか。", choices: ["対策", "対象", "体策", "対作"], correctIndex: 0, explanation: "たいさく = 対策 (countermeasure)。" },
-      { category: "grammar", prompt: "「肉が嫌いな＿＿、あまり食べません。」空欄に入るのはどれですか。", choices: ["わけではありませんが", "さえあれば", "にとって", "おかげで"], correctIndex: 0, explanation: "「〜わけではない」= 部分否定。" },
-      { category: "grammar", prompt: "「時間＿＿あれば、旅行に行けます。」空欄に入るのはどれですか。", choices: ["さえ", "こそ", "つつ", "ばかり"], correctIndex: 0, explanation: "「〜さえ〜ば」= as long as。" },
-      { category: "grammar", prompt: "「先生の＿＿、無事に合格できました。」空欄に入るのはどれですか。", choices: ["おかげで", "せいで", "わけで", "うえで"], correctIndex: 0, explanation: "良い結果には「〜おかげで」を使います。" },
-      { category: "listening", prompt: "（会話）A「最近、忙しいですか。」B「忙しいですが、嫌いなわけではありません。」\n質問：Bさんは仕事についてどう思っていますか。", choices: ["嫌いだ", "忙しいが嫌いではない", "楽だ", "辞めたい"], correctIndex: 1, explanation: "「嫌いなわけではありません」と言っています。" },
-      { category: "listening", prompt: "（会話）A「環境問題について何か対策がありますか。」B「ゴミを減らす対策を進めています。」\n質問：どんな対策をしていますか。", choices: ["ゴミを減らす", "水を増やす", "電車を止める", "何もしない"], correctIndex: 0, explanation: "「ゴミを減らす対策」と言っています。" },
-      { category: "listening", prompt: "（会話）A「景気はどうですか。」B「少しずつ回復しつつあります。」\n質問：景気の状況はどれですか。", choices: ["悪化している", "回復している最中", "完全に回復した", "変化がない"], correctIndex: 1, explanation: "「〜つつある」は進行中を表します。" },
-      { category: "reading", prompt: "（文章）近年、リモートワークをする人の割合が増えている。働く環境が変わりつつあるといえる。\n質問：文章の内容と合っているのはどれですか。", choices: ["リモートワークは減っている", "働く環境は変化している", "環境は変わっていない", "誰も在宅勤務をしていない"], correctIndex: 1, explanation: "「働く環境が変わりつつある」とあります。" },
-      { category: "reading", prompt: "（文章）今の状況を冷静に判断し、必要な対策を取ることが重要だ。\n質問：筆者が重要だと言っていることは何ですか。", choices: ["感情的に決めること", "冷静な判断と対策", "何もしないこと", "他人に任せること"], correctIndex: 1, explanation: "「冷静に判断し、対策を取ること」が重要だと述べています。" },
-      { category: "reading", prompt: "（文章）健康を維持するためには、運動だけでなく食事や睡眠の管理も欠かせない。\n質問：健康維持に必要だと言われているのはどれですか。", choices: ["運動だけ", "運動・食事・睡眠", "睡眠だけ", "何も必要ない"], correctIndex: 1, explanation: "運動・食事・睡眠の管理が挙げられています。" },
-    ],
-  },
-  N2: {
-    vocab: [
-      { term: "概念", reading: "がいねん", meaningJa: "物事の大まかな意味", meaningEn: "concept", example: "新しい概念を学びます。" },
-      { term: "促進", reading: "そくしん", meaningJa: "物事を早く進めること", meaningEn: "promotion / acceleration", example: "経済の促進を図ります。" },
-      { term: "抽象的", reading: "ちゅうしょうてき", meaningJa: "具体的でないこと", meaningEn: "abstract", example: "抽象的な説明では分かりません。" },
-      { term: "一致", reading: "いっち", meaningJa: "同じになること", meaningEn: "agreement / match", example: "意見が一致しました。" },
-      { term: "矛盾", reading: "むじゅん", meaningJa: "つじつまが合わないこと", meaningEn: "contradiction", example: "話に矛盾があります。" },
-      { term: "補う", reading: "おぎなう", meaningJa: "足りない部分を満たす", meaningEn: "to compensate / supplement", example: "不足を補います。" },
-      { term: "見なす", reading: "みなす", meaningJa: "そうだと判断する", meaningEn: "to regard as", example: "無回答は反対と見なします。" },
-      { term: "妥協", reading: "だきょう", meaningJa: "譲り合って合意すること", meaningEn: "compromise", example: "お互いに妥協します。" },
-    ],
-    grammar: [
-      { pattern: "〜にもかかわらず", meaningEn: "despite / in spite of", example: "努力したにもかかわらず失敗した。" },
-      { pattern: "〜あげく", meaningEn: "after all (negative result)", example: "悩んだあげく、諦めた。" },
-      { pattern: "〜を問わず", meaningEn: "regardless of", example: "経験を問わず応募できます。" },
-      { pattern: "〜に応じて", meaningEn: "according to / in response to", example: "実力に応じてクラスを分けます。" },
-      { pattern: "〜次第だ", meaningEn: "depends on", example: "成功するかは努力次第だ。" },
-    ],
-    questions: [
-      { category: "vocabulary", prompt: "「矛盾」の意味はどれですか。", choices: ["contradiction", "compromise", "promotion", "concept"], correctIndex: 0, explanation: "「矛盾」= contradiction。" },
-      { category: "vocabulary", prompt: "「抽象的」の反対の意味に近い言葉はどれですか。", choices: ["具体的", "促進的", "一致的", "妥協的"], correctIndex: 0, explanation: "抽象的 ⇔ 具体的。" },
-      { category: "vocabulary", prompt: "「だきょう」を漢字で書くとどれですか。", choices: ["妥協", "妥協", "打境", "他協"], correctIndex: 0, explanation: "だきょう = 妥協 (compromise)。" },
-      { category: "grammar", prompt: "「努力した＿＿、結果は出なかった。」空欄に入るのはどれですか。", choices: ["にもかかわらず", "を問わず", "に応じて", "次第だ"], correctIndex: 0, explanation: "「〜にもかかわらず」= despite。" },
-      { category: "grammar", prompt: "「長時間悩んだ＿＿、計画を中止した。」空欄に入るのはどれですか。", choices: ["あげく", "にもかかわらず", "を問わず", "次第だ"], correctIndex: 0, explanation: "「〜あげく」= 悪い結果に至る経緯。" },
-      { category: "grammar", prompt: "「参加資格は経験＿＿、誰でも応募できます。」空欄に入るのはどれですか。", choices: ["を問わず", "に応じて", "あげく", "次第だ"], correctIndex: 0, explanation: "「〜を問わず」= regardless of。" },
-      { category: "listening", prompt: "（会話）A「新しいシステムの導入はどうですか。」B「業務の促進にとても役立っています。」\n質問：新システムはどう評価されていますか。", choices: ["役に立っている", "役に立っていない", "まだ導入していない", "反対されている"], correctIndex: 0, explanation: "「業務の促進に役立っている」と評価しています。" },
-      { category: "listening", prompt: "（会話）A「彼の説明、分かりましたか。」B「いいえ、抽象的すぎて分かりませんでした。」\n質問：Bさんはなぜ分からなかったのですか。", choices: ["説明が具体的すぎたから", "説明が抽象的だったから", "説明を聞かなかったから", "興味がなかったから"], correctIndex: 1, explanation: "「抽象的すぎて」と理由を述べています。" },
-      { category: "listening", prompt: "（会話）A「二人の意見は一致しましたか。」B「いいえ、最後はお互いに妥協しました。」\n質問：結果はどうなりましたか。", choices: ["完全に一致した", "妥協点を見つけた", "対立したままだ", "話し合いをやめた"], correctIndex: 1, explanation: "「お互いに妥協しました」と言っています。" },
-      { category: "reading", prompt: "（文章）このデータには明らかな矛盾があり、報告書の内容をそのまま信用することはできない。\n質問：筆者は報告書についてどう考えていますか。", choices: ["完全に信頼できる", "矛盾があり信頼しにくい", "内容が正確だ", "何も問題がない"], correctIndex: 1, explanation: "「矛盾があり、信用できない」と述べています。" },
-      { category: "reading", prompt: "（文章）給与は各人の実力に応じて決定される。年齢や経験年数を問わず、成果を重視する制度である。\n質問：この給与制度の特徴はどれですか。", choices: ["年齢を最も重視する", "実力・成果を重視する", "経験年数だけで決まる", "全員同じ給与になる"], correctIndex: 1, explanation: "「実力に応じて」「成果を重視」とあります。" },
-      { category: "reading", prompt: "（文章）長時間の議論のあげく、両者は妥協案を受け入れることにした。\n質問：議論の結果はどうなりましたか。", choices: ["決裂した", "妥協案を受け入れた", "議論を続けている", "誰も納得しなかった"], correctIndex: 1, explanation: "「妥協案を受け入れることにした」とあります。" },
-    ],
-  },
-  N1: {
-    vocab: [
-      { term: "曖昧", reading: "あいまい", meaningJa: "はっきりしないこと", meaningEn: "ambiguous / vague", example: "曖昧な返事をされました。" },
-      { term: "遂行", reading: "すいこう", meaningJa: "物事をやり遂げること", meaningEn: "execution / carrying out", example: "任務を遂行します。" },
-      { term: "円滑", reading: "えんかつ", meaningJa: "物事がスムーズに進むこと", meaningEn: "smooth", example: "円滑に進めます。" },
-      { term: "是正", reading: "ぜせい", meaningJa: "誤りを正すこと", meaningEn: "correction / rectification", example: "格差を是正します。" },
-      { term: "潜在的", reading: "せんざいてき", meaningJa: "表に出ていないこと", meaningEn: "potential / latent", example: "潜在的な needs があります。" },
-      { term: "顕著", reading: "けんちょ", meaningJa: "はっきり目立つこと", meaningEn: "marked / prominent", example: "効果が顕著に表れました。" },
-      { term: "逸脱", reading: "いつだつ", meaningJa: "本筋から外れること", meaningEn: "deviation", example: "規則から逸脱しています。" },
-      { term: "秩序", reading: "ちつじょ", meaningJa: "正しい順序や決まり", meaningEn: "order", example: "社会の秩序を守ります。" },
-    ],
-    grammar: [
-      { pattern: "〜きらいがある", meaningEn: "tend to (negative nuance)", example: "彼は結論を急ぐきらいがある。" },
-      { pattern: "〜べからず", meaningEn: "must not", example: "立ち入るべからず。" },
-      { pattern: "〜にたえない", meaningEn: "cannot bear to / cannot help but", example: "見るにたえない光景だ。" },
-      { pattern: "〜ならでは", meaningEn: "unique to / only possible because of", example: "これは職人ならではの技術だ。" },
-      { pattern: "〜を余儀なくされる", meaningEn: "be forced to", example: "計画の中止を余儀なくされた。" },
-    ],
-    questions: [
-      { category: "vocabulary", prompt: "「曖昧」の意味はどれですか。", choices: ["ambiguous / vague", "smooth", "prominent", "orderly"], correctIndex: 0, explanation: "「曖昧」= ambiguous / vague。" },
-      { category: "vocabulary", prompt: "「顕著」の意味はどれですか。", choices: ["marked / prominent", "latent", "smooth", "deviant"], correctIndex: 0, explanation: "「顕著」= marked / prominent。" },
-      { category: "vocabulary", prompt: "「ぜせい」を漢字で書くとどれですか。", choices: ["是正", "是製", "制正", "是政"], correctIndex: 0, explanation: "ぜせい = 是正 (correction)。" },
-      { category: "grammar", prompt: "「彼の説明は要点が＿＿きらいがある。」空欄に入るのはどれですか。", choices: ["ずれる", "ずれた", "ずれて", "ずれ"], correctIndex: 0, explanation: "「〜きらいがある」の前は動詞辞書形。" },
-      { category: "grammar", prompt: "「その惨状は目を覆う＿＿ものだった。」空欄に入るのはどれですか。", choices: ["にたえない", "べからず", "ならでは", "を余儀なくされる"], correctIndex: 0, explanation: "「〜にたえない」= 直視できないほど酷い。" },
-      { category: "grammar", prompt: "「台風のため、イベントの中止＿＿。」空欄に入るのはどれですか。", choices: ["を余儀なくされた", "にたえない", "べからず", "きらいがある"], correctIndex: 0, explanation: "「〜を余儀なくされる」= 強制的にそうせざるを得ない。" },
-      { category: "listening", prompt: "（会話）A「今回のプロジェクトは順調ですか。」B「はい、想定より円滑に進んでいます。」\n質問：プロジェクトの状況はどれですか。", choices: ["問題が多い", "順調に進んでいる", "中止になった", "遅れている"], correctIndex: 1, explanation: "「円滑に進んでいます」と答えています。" },
-      { category: "listening", prompt: "（会話）A「彼の返答についてどう思いますか。」B「正直、曖昧で判断しかねます。」\n質問：Bさんは彼の返答をどう感じていますか。", choices: ["明確だ", "曖昧で分かりにくい", "とても具体的だ", "満足している"], correctIndex: 1, explanation: "「曖昧で判断しかねます」と述べています。" },
-      { category: "listening", prompt: "（会話）A「規則から逸脱した行為があったそうですね。」B「はい、社内で秩序を是正する動きが出ています。」\n質問：社内ではどんな動きがありますか。", choices: ["規則を廃止する", "秩序を是正しようとしている", "何もしない", "逸脱を推奨する"], correctIndex: 1, explanation: "「秩序を是正する動き」と言っています。" },
-      { category: "reading", prompt: "（文章）本制度は潜在的な需要を掘り起こすことを目的としており、効果はすでに顕著に表れている。\n質問：この文章の内容と合っているのはどれですか。", choices: ["効果はまだ出ていない", "効果ははっきり表れている", "制度は失敗した", "需要は存在しない"], correctIndex: 1, explanation: "「効果はすでに顕著に表れている」とあります。" },
-      { category: "reading", prompt: "（文章）予期せぬ事態により、当初の計画は大幅な変更を余儀なくされたが、関係者の努力により業務は円滑に遂行された。\n質問：業務の結果はどうでしたか。", choices: ["計画通りに何も変えず進んだ", "変更を強いられたが円滑に遂行された", "完全に失敗した", "誰も対応しなかった"], correctIndex: 1, explanation: "「変更を余儀なくされたが、円滑に遂行された」とあります。" },
-      { category: "reading", prompt: "（文章）彼の主張には根拠が乏しく、事実から逸脱しているきらいがあるため、慎重に検討すべきだ。\n質問：筆者は彼の主張をどう見ていますか。", choices: ["信頼できると評価している", "事実から外れている可能性を懸念している", "全く興味がない", "秩序があると称賛している"], correctIndex: 1, explanation: "「事実から逸脱しているきらいがある」と懸念を示しています。" },
-    ],
-  },
+export const VOCAB_MEANINGS: Record<string, MeaningMap> = {
+  "食べる": { vi: "ăn", id: "makan", tl: "kumain", my: "စားသည်", zh: "吃", ne: "खानु", km: "ញ៉ាំ", mn: "идэх", th: "กิน", si: "කනවා" },
+  "学校": { vi: "trường học", id: "sekolah", tl: "paaralan", my: "ကျောင်း", zh: "学校", ne: "विद्यालय", km: "សាលារៀន", mn: "сургууль", th: "โรงเรียน", si: "පාසල" },
+  "水": { vi: "nước", id: "air", tl: "tubig", my: "ရေ", zh: "水", ne: "पानी", km: "ទឹក", mn: "ус", th: "น้ำ", si: "ජලය" },
+  "大きい": { vi: "to, lớn", id: "besar", tl: "malaki", my: "ကြီးသော", zh: "大", ne: "ठूलो", km: "ធំ", mn: "том", th: "ใหญ่", si: "ලොකු" },
+  "友達": { vi: "bạn bè", id: "teman", tl: "kaibigan", my: "သူငယ်ချင်း", zh: "朋友", ne: "साथी", km: "មិត្តភក្តិ", mn: "найз", th: "เพื่อน", si: "මිතුරා" },
+  "毎日": { vi: "hằng ngày, mỗi ngày", id: "setiap hari", tl: "araw-araw", my: "နေ့စဉ်", zh: "每天", ne: "हरेक दिन", km: "រៀងរាល់ថ្ងៃ", mn: "өдөр бүр", th: "ทุกวัน", si: "දිනපතා" },
+  "電車": { vi: "tàu điện", id: "kereta listrik", tl: "tren", my: "ရထား", zh: "电车", ne: "रेल", km: "រថភ្លើង", mn: "галт тэрэг", th: "รถไฟ", si: "දුම්රිය" },
+  "忙しい": { vi: "bận rộn", id: "sibuk", tl: "abala / busy", my: "အလုပ်များသော", zh: "忙，忙碌", ne: "व्यस्त", km: "រវល់", mn: "завгүй", th: "ยุ่ง, ไม่ว่าง", si: "කාර්යබහුල" },
+  "経験": { vi: "kinh nghiệm", id: "pengalaman", tl: "karanasan", my: "အတွေ့အကြုံ", zh: "经验", ne: "अनुभव", km: "បទពិសោធន៍", mn: "туршлага", th: "ประสบการณ์", si: "අත්දැකීම" },
+  "準備": { vi: "chuẩn bị", id: "persiapan", tl: "paghahanda", my: "ပြင်ဆင်မှု", zh: "准备", ne: "तयारी", km: "ការត្រៀមរៀបចំ", mn: "бэлтгэл", th: "การเตรียมตัว", si: "සූදානම් කිරීම" },
+  "説明": { vi: "giải thích", id: "penjelasan", tl: "paliwanag", my: "ရှင်းလင်းချက်", zh: "说明", ne: "व्याख्या", km: "ការពន្យល់", mn: "тайлбар", th: "การอธิบาย", si: "පැහැදිලි කිරීම" },
+  "世界": { vi: "thế giới", id: "dunia", tl: "mundo", my: "ကမ္ဘာ", zh: "世界", ne: "संसार", km: "ពិភពលោក", mn: "дэлхий", th: "โลก", si: "ලෝකය" },
+  "台風": { vi: "bão (typhoon)", id: "topan", tl: "bagyo", my: "တိုင်ဖွန်းမုန်တိုင်း", zh: "台风", ne: "टाइफुन (प्रचण्ड आँधी)", km: "ព្យុះទីហ្វុង", mn: "тайфун", th: "ไต้ฝุ่น", si: "සුළි කුණාටුව" },
+  "用意": { vi: "sự chuẩn bị, sẵn sàng", id: "kesiapan", tl: "kahandaan", my: "အသင့်ပြင်ဆင်ခြင်း", zh: "准备", ne: "व्यवस्था / तयारी", km: "ការត្រៀមខ្លួន", mn: "бэлэн байдал", th: "การเตรียมพร้อม", si: "සූදානම" },
+  "天気予報": { vi: "dự báo thời tiết", id: "ramalan cuaca", tl: "ulat ng panahon", my: "ရာသီဥတု ခန့်မှန်းချက်", zh: "天气预报", ne: "मौसम पूर्वानुमान", km: "ព្យាករណ៍អាកាសធាតុ", mn: "цаг агаарын мэдээ", th: "พยากรณ์อากาศ", si: "කාලගුණ අනාවැකිය" },
+  "招待": { vi: "lời mời, mời", id: "undangan", tl: "imbitasyon", my: "ဖိတ်ကြားခြင်း", zh: "邀请", ne: "निमन्त्रणा", km: "ការអញ្ជើញ", mn: "урилга", th: "คำเชิญ", si: "ආරාධනාව" },
+  "影響": { vi: "ảnh hưởng", id: "pengaruh", tl: "epekto / impluwensya", my: "သက်ရောက်မှု", zh: "影响", ne: "प्रभाव", km: "ឥទ្ធិពល", mn: "нөлөө", th: "อิทธิพล, ผลกระทบ", si: "බලපෑම" },
+  "状況": { vi: "tình huống, tình hình", id: "situasi", tl: "sitwasyon", my: "အခြေအနေ", zh: "状况，情况", ne: "अवस्था", km: "ស្ថានភាព", mn: "нөхцөл байдал", th: "สถานการณ์", si: "තත්ත්වය" },
+  "判断": { vi: "phán đoán, đánh giá", id: "penilaian", tl: "pagpapasya", my: "ဆုံးဖြတ်ချက်", zh: "判断", ne: "निर्णय", km: "ការវិនិច្ឆ័យ", mn: "дүгнэлт, шийдвэр", th: "การตัดสินใจ", si: "විනිශ්චය" },
+  "割合": { vi: "tỷ lệ", id: "rasio / proporsi", tl: "ratio / proporsyon", my: "အချိုးအစား", zh: "比例", ne: "अनुपात", km: "សមាមាត្រ", mn: "харьцаа", th: "อัตราส่วน", si: "අනුපාතය" },
+  "環境": { vi: "môi trường", id: "lingkungan", tl: "kapaligiran", my: "သဘာဝပတ်ဝန်းကျင်", zh: "环境", ne: "वातावरण", km: "បរិស្ថាន", mn: "орчин", th: "สิ่งแวดล้อม", si: "පරිසරය" },
+  "対策": { vi: "biện pháp đối phó", id: "langkah penanggulangan", tl: "hakbang / solusyon", my: "ကာကွယ်ဖြေရှင်းရေးနည်းလမ်း", zh: "对策", ne: "उपाय", km: "វិធានការ", mn: "арга хэмжээ", th: "มาตรการรับมือ", si: "පිළියම" },
+  "傾向": { vi: "xu hướng", id: "kecenderungan", tl: "tendensya / kalakaran", my: "လမ်းကြောင်း / သဘောထား", zh: "倾向", ne: "प्रवृत्ति", km: "និន្នាការ", mn: "хандлага", th: "แนวโน้ม", si: "ප්‍රවණතාව" },
+  "維持": { vi: "duy trì", id: "pemeliharaan", tl: "pagpapanatili", my: "ထိန်းသိမ်းမှု", zh: "维持", ne: "कायम राख्ने कार्य", km: "ការថែរក្សា", mn: "хадгалалт", th: "การรักษาสภาพ", si: "පවත්වාගෙන යාම" },
+  "概念": { vi: "khái niệm", id: "konsep", tl: "konsepto", my: "သဘောတရား", zh: "概念", ne: "अवधारणा", km: "គោលគំនិត", mn: "ойлголт", th: "แนวคิด", si: "සංකල්පය" },
+  "促進": { vi: "thúc đẩy", id: "promosi / percepatan", tl: "pagtataguyod / pagpapabilis", my: "မြှင့်တင်မှု", zh: "促进", ne: "प्रवर्द्धन", km: "ការជំរុញ", mn: "дэмжлэг, түргэтгэл", th: "การส่งเสริม", si: "ප්‍රවර්ධනය" },
+  "抽象的": { vi: "trừu tượng", id: "abstrak", tl: "abstrakto", my: "စိတ္တဇသဘောဆောင်သော", zh: "抽象的", ne: "अमूर्त", km: "អរូបី", mn: "хийсвэр", th: "เชิงนามธรรม", si: "වියුක්ත" },
+  "一致": { vi: "sự trùng khớp, nhất trí", id: "kesesuaian / kecocokan", tl: "pagkakatugma", my: "ကိုက်ညီမှု", zh: "一致", ne: "मेल / सहमति", km: "ភាពស្របគ្នា", mn: "тохирол", th: "ความสอดคล้องกัน", si: "එකඟතාව" },
+  "矛盾": { vi: "mâu thuẫn", id: "kontradiksi", tl: "kontradiksyon", my: "ဆန့်ကျင်ကွဲလွဲမှု", zh: "矛盾", ne: "विरोधाभास", km: "ភាពផ្ទុយគ្នា", mn: "зөрчилдөөн", th: "ข้อขัดแย้งในตัวเอง", si: "පරස්පරතාව" },
+  "補う": { vi: "bổ sung, bù đắp", id: "melengkapi / menutupi kekurangan", tl: "punan / dagdagan", my: "ဖြည့်စွက်သည်", zh: "弥补，补充", ne: "कमी पूरा गर्नु", km: "បំពេញបន្ថែម", mn: "нөхөх", th: "ชดเชย, เติมเต็ม", si: "පිරවීම කරනවා" },
+  "見なす": { vi: "coi là, xem như", id: "menganggap sebagai", tl: "ituring bilang", my: "သတ်မှတ်သည် / ယူဆသည်", zh: "视为，认为", ne: "ठान्नु / मान्नु", km: "ចាត់ទុកថា", mn: "гэж үзэх", th: "ถือว่าเป็น", si: "සලකනවා" },
+  "妥協": { vi: "thỏa hiệp", id: "kompromi", tl: "kompromiso", my: "အလျှော့ပေးညှိနှိုင်းမှု", zh: "妥协", ne: "सम्झौता", km: "ការសម្របសម្រួល", mn: "буулт", th: "การประนีประนอม", si: "සම්මුතිය" },
+  "曖昧": { vi: "mơ hồ, không rõ ràng", id: "ambigu / tidak jelas", tl: "malabo / hindi malinaw", my: "မရေရာသော", zh: "暧昧，模糊不清", ne: "अस्पष्ट", km: "មិនច្បាស់លាស់", mn: "тодорхой бус", th: "คลุมเครือ", si: "අපැහැදිලි" },
+  "遂行": { vi: "thực hiện, thi hành", id: "pelaksanaan", tl: "pagsasakatuparan", my: "အကောင်အထည်ဖော် ဆောင်ရွက်ခြင်း", zh: "履行，执行", ne: "सम्पादन गर्ने कार्य", km: "ការអនុវត្ត", mn: "гүйцэтгэл", th: "การดำเนินการให้สำเร็จ", si: "ඉටු කිරීම" },
+  "円滑": { vi: "suôn sẻ, trôi chảy", id: "lancar", tl: "maayos / walang sagabal", my: "ချောမွေ့သော", zh: "顺利，圆滑", ne: "सहज / सुचारु", km: "រលូន", mn: "гөлгөр", th: "ราบรื่น", si: "සුමට" },
+  "是正": { vi: "sửa chữa, chấn chỉnh", id: "perbaikan / koreksi", tl: "pagwawasto", my: "ပြင်ဆင်ခြင်း", zh: "纠正，改正", ne: "सुधार", km: "ការកែតម្រូវ", mn: "залруулга", th: "การแก้ไขให้ถูกต้อง", si: "නිවැරදි කිරීම" },
+  "潜在的": { vi: "tiềm tàng, tiềm ẩn", id: "potensial / tersembunyi", tl: "potensyal / natatago", my: "ကွယ်ဝှက်နေသော အလားအလာရှိသော", zh: "潜在的", ne: "सम्भावित / गुप्त", km: "សក្តានុពល", mn: "далд, боломжит", th: "แฝงอยู่, มีศักยภาพ", si: "විභව" },
+  "顕著": { vi: "rõ rệt, nổi bật", id: "mencolok / nyata", tl: "kapansin-pansin", my: "ထင်ရှားသော", zh: "显著", ne: "उल्लेखनीय", km: "លេចធ្លោ", mn: "мэдэгдэхүйц", th: "เด่นชัด", si: "කැපී පෙනෙන" },
+  "逸脱": { vi: "sự đi chệch, lệch hướng", id: "penyimpangan", tl: "paglihis", my: "သွေဖည်မှု", zh: "偏离，脱离", ne: "विचलन", km: "ការចាកចេញពីគន្លង", mn: "хазайлт", th: "การเบี่ยงเบน", si: "අපගමනය" },
+  "秩序": { vi: "trật tự", id: "ketertiban", tl: "kaayusan", my: "စည်းကမ်းစနစ်ကျမှု", zh: "秩序", ne: "व्यवस्था / अनुशासन", km: "សណ្តាប់ធ្នាប់", mn: "дэг журам", th: "ระเบียบ", si: "පිළිවෙල" },
 };
+
+export const GRAMMAR_MEANINGS: Record<string, MeaningMap> = {
+  "〜ています": { vi: "đang làm / trạng thái hiện tại", id: "sedang berlangsung / keadaan saat ini", tl: "patuloy na kilos / kasalukuyang kalagayan", my: "ဆက်လက်လုပ်ဆောင်နေဆဲ / လက်ရှိအခြေအနေ", zh: "表示正在进行的动作／当前的状态", ne: "जारी रहेको कार्य / हालको अवस्था", km: "សកម្មភាពកំពុងបន្ត / ស្ថានភាពបច្ចុប្បន្ន", mn: "үргэлжилж буй үйлдэл / одоогийн байдал", th: "กำลังทำอยู่ / สภาพปัจจุบัน", si: "සිදු වෙමින් පවතින ක්‍රියාව / වත්මන් තත්ත්වය" },
+  "〜たいです": { vi: "muốn làm", id: "ingin melakukan", tl: "gustong gawin", my: "...လုပ်ချင်သည်", zh: "想要做…", ne: "...गर्न चाहनु", km: "ចង់ធ្វើ", mn: "хийхийг хүсэх", th: "อยากทำ...", si: "කිරීමට කැමතියි" },
+  "〜ないでください": { vi: "xin đừng làm", id: "tolong jangan melakukan", tl: "pakiusap huwag gawin", my: "...မလုပ်ပါနှင့်", zh: "请不要…", ne: "कृपया ...नगर्नुहोस्", km: "សូមកុំធ្វើ", mn: "хийхгүй байхыг хүсэх", th: "กรุณาอย่าทำ...", si: "කරන්න එපා කියා ඉල්ලීම" },
+  "〜前に": { vi: "trước khi làm", id: "sebelum melakukan", tl: "bago gawin", my: "...မလုပ်မီ", zh: "…之前", ne: "...गर्नु अगाडि", km: "មុននឹងធ្វើ", mn: "хийхээсээ өмнө", th: "ก่อนที่จะทำ...", si: "කිරීමට පෙර" },
+  "〜ことができます": { vi: "có thể làm", id: "dapat melakukan", tl: "kaya gawin", my: "...လုပ်နိုင်သည်", zh: "能够…，会…", ne: "...गर्न सक्नु", km: "អាចធ្វើបាន", mn: "хийж чадах", th: "สามารถทำ...ได้", si: "කළ හැකියි" },
+  "〜そうです": { vi: "trông có vẻ / dường như", id: "terlihat seperti / sepertinya", tl: "mukhang / parang", my: "...ဟန်ရှိသည် / ထင်ရသည်", zh: "看起来…，好像…", ne: "...जस्तो देखिन्छ", km: "ហាក់ដូចជា", mn: "...шиг санагдах, харагдах", th: "ดูเหมือนว่า...", si: "පෙනෙන්නට / බඳුයි" },
+  "〜ようになる": { vi: "dần trở nên có thể làm", id: "menjadi bisa melakukan", tl: "nagsimulang maging kaya", my: "...လုပ်နိုင်လာသည် (အခြေအနေပြောင်းလဲမှု)", zh: "变得能够…", ne: "...गर्न सक्षम हुँदै जानु", km: "ក្លាយជាអាចធ្វើបាន", mn: "хийж чаддаг болох", th: "กลายเป็นสามารถทำ...ได้", si: "ක්‍රමයෙන් කළ හැකි වීම" },
+  "〜たら": { vi: "nếu / khi", id: "jika / ketika", tl: "kung / kapag", my: "...ရင် / ...လျှင်", zh: "如果…，…的话", ne: "यदि/जब ...भए", km: "ប្រសិនបើ / នៅពេល", mn: "хэрэв ... бол", th: "ถ้า.../เมื่อ...", si: "නම් / විට" },
+  "〜のに": { vi: "mặc dù / dù vậy", id: "padahal / meskipun", tl: "kahit na / sa kabila ng", my: "...ပေမဲ့ / ဆိုပေမယ့်", zh: "虽然…，明明…", ne: "...भए तापनि", km: "ថ្វីត្បិតតែ", mn: "гэсэн хэдий ч", th: "ทั้งที่.../แม้ว่า...", si: "වුවත් / නමුත්" },
+  "〜ばかり": { vi: "chỉ / toàn là", id: "hanya / baru saja", tl: "puro lamang / bago lamang gawin", my: "...ချည်း / ...ပဲ", zh: "只…，净是…", ne: "मात्र / जहिले पनि", km: "គ្រាន់តែ / ទើបតែ", mn: "зөвхөн ... л", th: "แค่.../เพิ่ง...เท่านั้น", si: "පමණක් / විතරක්" },
+  "〜わけではない": { vi: "không hẳn là / không có nghĩa là", id: "tidak berarti selalu", tl: "hindi ibig sabihin na", my: "...ဟု အမှန်တကယ် မဆိုလိုပါ", zh: "并不是说…", ne: "अनिवार्य रूपमा त्यस्तो होइन", km: "មិនមែនមានន័យថាទាំងអស់ទេ", mn: "гэсэн үг биш", th: "ไม่ได้หมายความว่า...เสมอไป", si: "අනිවාර්යයෙන්ම එසේ නොවේ" },
+  "〜さえ〜ば": { vi: "chỉ cần... là được", id: "asalkan / selama", tl: "basta / kung", my: "...ရုံနှင့် / ...ရင်တင်", zh: "只要…就…", ne: "...मात्र भए पनि पुग्छ", km: "គ្រាន់តែ...ក៏បាន", mn: "зөвхөн ... бол л болно", th: "ขอเพียงแค่...ก็...", si: "පමණක්වත් නම්" },
+  "〜にとって": { vi: "đối với", id: "bagi / dari sudut pandang", tl: "para sa / sa paningin ng", my: "...၏ရှုထောင့်အရ / ...အတွက်ဆိုရင်", zh: "对…来说", ne: "...का लागि (दृष्टिकोणबाट)", km: "សម្រាប់ / ចំពោះ", mn: "...-ийн хувьд", th: "สำหรับ... (ในมุมมองของ)", si: "ට අනුව / දෘෂ්ටිකෝණයෙන්" },
+  "〜おかげで": { vi: "nhờ có", id: "berkat", tl: "salamat sa", my: "...ကျေးဇူးကြောင့်", zh: "多亏了…", ne: "...को कारणले (सकारात्मक)", km: "អរគុណដល់ / ដោយសារតែ", mn: "...-ийн ачаар", th: "เพราะ.../ด้วยความช่วยเหลือของ...", si: "ස්තුතියි / නිසා" },
+  "〜つつある": { vi: "đang dần dần", id: "sedang dalam proses", tl: "unti-unting nagiging", my: "...လုပ်ဆောင်နေဆဲဖြစ်သည် (တဖြည်းဖြည်း)", zh: "正在逐渐…", ne: "...हुँदै गइरहेको", km: "កំពុងតែ", mn: "...болж байгаа явцад", th: "กำลังอยู่ในระหว่าง...", si: "ක්‍රමයෙන් සිදුවෙමින් පවතී" },
+  "〜にもかかわらず": { vi: "mặc dù / bất chấp", id: "meskipun / walaupun", tl: "sa kabila ng", my: "...ဖြစ်ပါလျက်နှင့်", zh: "尽管…，虽然…", ne: "...भए पनि / बावजुद", km: "ថ្វីត្បិតតែ / ទោះបីជា", mn: "...-г үл харгалзан", th: "แม้ว่า.../ทั้งที่...", si: "වුවද / නොතකා" },
+  "〜あげく": { vi: "cuối cùng thì (kết quả không tốt)", id: "pada akhirnya (hasil negatif)", tl: "sa bandang huli (negatibong resulta)", my: "...ပြီးနောက်ဆုံးတွင် (မကောင်းသောရလဒ်)", zh: "…到最后（结果不好）", ne: "अन्ततः (नकारात्मक परिणाम)", km: "ជាចុងក្រោយ (លទ្ធផលអវិជ្ជមាន)", mn: "эцэст нь (сөрөг үр дүн)", th: "ในที่สุดก็... (ผลลัพธ์ไม่ดี)", si: "අවසානයේදී (නරක ප්‍රතිඵලයක්)" },
+  "〜を問わず": { vi: "bất kể / không phân biệt", id: "tanpa memandang / terlepas dari", tl: "anuman ang / hindi alintana", my: "...ကို မထောက်ဘဲ", zh: "不论…，无论…", ne: "जे भए पनि / नभनी", km: "មិនគិតពី", mn: "...-г үл ялгаварлан", th: "ไม่ว่าจะ...ก็ตาม", si: "නොසලකා / කුමක් වුවත්" },
+  "〜に応じて": { vi: "tùy theo / tương ứng với", id: "sesuai dengan / menanggapi", tl: "ayon sa / depende sa", my: "...နှင့်အညီ", zh: "根据…，按照…", ne: "...अनुसार", km: "អាស្រ័យតាម", mn: "...-д тохируулан", th: "ตามความเหมาะสมกับ...", si: "අනුව / අනුරූපව" },
+  "〜次第だ": { vi: "tùy thuộc vào", id: "tergantung pada", tl: "depende sa", my: "...အပေါ်မူတည်သည်", zh: "取决于…", ne: "...मा निर्भर हुनु", km: "អាស្រ័យលើ", mn: "...-аас шалтгаалах", th: "ขึ้นอยู่กับ...", si: "මත රඳා පවතී" },
+  "〜きらいがある": { vi: "có xu hướng (mang sắc thái tiêu cực)", id: "cenderung (nuansa negatif)", tl: "may tendensyang (negatibo)", my: "...လုပ်တတ်သောသဘောရှိသည် (အနုတ်လက္ခဏာ)", zh: "有…的倾向（含负面语气）", ne: "...गर्ने प्रवृत्ति हुनु (नकारात्मक भाव)", km: "មានទំនោរទៅរក (អត្ថន័យអវិជ្ជមាន)", mn: "хандлагатай байх (сөрөг утгаар)", th: "มีแนวโน้มที่จะ... (ในทางลบ)", si: "නැඹුරු වීමේ ප්‍රවණතාවක් ඇත (නිෂේධාත්මක)" },
+  "〜べからず": { vi: "không được phép / cấm", id: "tidak boleh / dilarang", tl: "bawal / huwag gagawin", my: "...မလုပ်ရ", zh: "不得…，禁止…", ne: "...गर्नु हुँदैन", km: "មិនត្រូវ / ហាមឃាត់", mn: "болохгүй (хатуу хориг)", th: "ห้ามทำ...", si: "නොකළ යුතුයි" },
+  "〜にたえない": { vi: "không thể chịu đựng nổi / không kìm được", id: "tidak tahan / tidak bisa menahan", tl: "hindi mapigilang / hindi matiis", my: "...မခံနိုင်လောက်အောင်", zh: "令人不忍…，不禁…", ne: "सहन नसक्ने / नरोकी नसक्ने", km: "មិនអាចទប់ចិត្តបាន", mn: "тэвчихийн аргагүй", th: "ทนไม่ไหวที่จะ... / อดไม่ได้ที่จะ...", si: "ඉවසිය නොහැකි / නොකර සිටිය නොහැකි" },
+  "〜ならでは": { vi: "chỉ có ở / đặc trưng riêng của", id: "khas / hanya mungkin karena", tl: "katangi-tangi sa / dahil lamang sa", my: "...မှသာ ဖြစ်နိုင်သော", zh: "…特有的，正因为…才有的", ne: "...लाई मात्र सम्भव भएको", km: "ជាលក្ខណៈពិសេសរបស់", mn: "зөвхөн ...-д л боломжтой", th: "เป็นลักษณะเฉพาะของ...", si: "ට පමණක් සුවිශේෂී" },
+  "〜を余儀なくされる": { vi: "buộc phải", id: "terpaksa harus", tl: "napipilitang gawin", my: "...လုပ်ရန် မလွှဲမရှောင်သာဖြစ်သည်", zh: "被迫…", ne: "...गर्न बाध्य हुनु", km: "ត្រូវបង្ខំចិត្តឱ្យ", mn: "хийхээс өөр аргагүй болох", th: "ถูกบังคับให้ต้อง...", si: "බලහත්කාරයෙන් කිරීමට සිදු වේ" },
+};
+
+/** Build the meanings_json blob (all 10 languages) for a vocab term. */
+export function vocabMeaningsJson(term: string): string {
+  return JSON.stringify(VOCAB_MEANINGS[term] ?? {});
+}
+
+/** Build the meanings_json blob (all 10 languages) for a grammar pattern. */
+export function grammarMeaningsJson(pattern: string): string {
+  return JSON.stringify(GRAMMAR_MEANINGS[pattern] ?? {});
+}
