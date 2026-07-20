@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { t, type Dictionary } from "@/lib/i18n";
 
 export interface DailyDatum {
   date: string;
@@ -15,14 +16,14 @@ const PAD_LEFT = 36;
 const PAD_BOTTOM = 24;
 const PAD_TOP = 12;
 
-export default function ProgressLineChart({ data }: { data: DailyDatum[] }) {
+export default function ProgressLineChart({ data, dict }: { data: DailyDatum[]; dict: Dictionary }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [showTable, setShowTable] = useState(false);
 
   if (data.length === 0) {
     return (
       <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-        まだ学習記録がありません。クイズに挑戦すると、ここに日ごとの正答率が表示されます。
+        {dict.lineChart.noData}
       </p>
     );
   }
@@ -130,7 +131,11 @@ export default function ProgressLineChart({ data }: { data: DailyDatum[] }) {
           >
             <div className="font-semibold">{hovered.date}</div>
             <div>
-              正答率 {Math.round(hovered.accuracy * 100)}%（{hovered.correct}/{hovered.attempts}問）
+              {t(dict.lineChart.tooltipAccuracy, {
+                pct: Math.round(hovered.accuracy * 100),
+                correct: hovered.correct,
+                attempts: hovered.attempts,
+              })}
             </div>
           </div>
         )}
@@ -141,17 +146,17 @@ export default function ProgressLineChart({ data }: { data: DailyDatum[] }) {
         className="self-start text-xs underline"
         style={{ color: "var(--text-muted)" }}
       >
-        {showTable ? "表を隠す" : "表で見る"}
+        {showTable ? dict.lineChart.hideTable : dict.lineChart.showTable}
       </button>
 
       {showTable && (
         <table className="w-full text-left text-xs">
           <thead>
             <tr style={{ color: "var(--text-muted)" }}>
-              <th className="py-1 pr-4">日付</th>
-              <th className="py-1 pr-4">回答数</th>
-              <th className="py-1 pr-4">正答数</th>
-              <th className="py-1">正答率</th>
+              <th className="py-1 pr-4">{dict.lineChart.colDate}</th>
+              <th className="py-1 pr-4">{dict.lineChart.colAttempts}</th>
+              <th className="py-1 pr-4">{dict.lineChart.colCorrect}</th>
+              <th className="py-1">{dict.lineChart.colAccuracy}</th>
             </tr>
           </thead>
           <tbody>

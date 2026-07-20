@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { handleApiError, requireAccount } from "@/lib/api-helpers";
 import { createLearner, LearnerCapReachedError, listLearners } from "@/lib/repo/learners";
+import { LANGUAGE_CODES } from "@/lib/i18n/languages";
 
 export async function GET() {
   try {
@@ -16,13 +17,19 @@ export async function GET() {
 const CreateLearnerSchema = z.object({
   displayName: z.string().min(1).max(40),
   targetLevelCode: z.enum(["N5", "N4", "N3", "N2", "N1"]).optional(),
+  uiLanguage: z.enum(LANGUAGE_CODES as [string, ...string[]]).optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const account = await requireAccount();
     const body = CreateLearnerSchema.parse(await req.json());
-    const learner = await createLearner(account.id, body.displayName, body.targetLevelCode ?? "N1");
+    const learner = await createLearner(
+      account.id,
+      body.displayName,
+      body.targetLevelCode ?? "N1",
+      body.uiLanguage ?? "ja",
+    );
     return NextResponse.json({ learner });
   } catch (error) {
     if (error instanceof LearnerCapReachedError) {

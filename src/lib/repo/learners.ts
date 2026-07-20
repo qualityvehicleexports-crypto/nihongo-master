@@ -1,6 +1,7 @@
 import { all, get, run } from "../db";
 import { newId } from "../ids";
 import { getAccountById } from "./accounts";
+import { isLanguageCode } from "../i18n/languages";
 
 export interface Learner {
   id: string;
@@ -10,6 +11,7 @@ export interface Learner {
   current_level_code: string;
   target_level_code: string;
   target_exam_date: string | null;
+  ui_language: string;
   created_at: string;
 }
 
@@ -44,6 +46,7 @@ export async function createLearner(
   accountId: string,
   displayName: string,
   targetLevelCode = "N1",
+  uiLanguage = "ja",
 ): Promise<Learner> {
   const account = await getAccountById(accountId);
   if (!account) throw new Error("Account not found");
@@ -55,10 +58,11 @@ export async function createLearner(
 
   const id = newId("lrn");
   const avatarColor = AVATAR_COLORS[current % AVATAR_COLORS.length];
+  const language = isLanguageCode(uiLanguage) ? uiLanguage : "ja";
   await run(
-    `INSERT INTO learners (id, account_id, display_name, avatar_color, current_level_code, target_level_code)
-     VALUES (?, ?, ?, ?, 'N5', ?)`,
-    [id, accountId, displayName.trim(), avatarColor, targetLevelCode],
+    `INSERT INTO learners (id, account_id, display_name, avatar_color, current_level_code, target_level_code, ui_language)
+     VALUES (?, ?, ?, ?, 'N5', ?, ?)`,
+    [id, accountId, displayName.trim(), avatarColor, targetLevelCode, language],
   );
   const learner = await get<Learner>("SELECT * FROM learners WHERE id = ?", [id]);
   if (!learner) throw new Error("Failed to create learner");
@@ -83,4 +87,9 @@ export async function updateLearnerTarget(id: string, targetLevelCode: string, t
     targetExamDate,
     id,
   ]);
+}
+
+export async function updateLearnerLanguage(id: string, uiLanguage: string): Promise<void> {
+  const language = isLanguageCode(uiLanguage) ? uiLanguage : "ja";
+  await run("UPDATE learners SET ui_language = ? WHERE id = ?", [language, id]);
 }

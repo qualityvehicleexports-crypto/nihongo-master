@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { t, type Dictionary } from "@/lib/i18n";
 
 interface QuizQuestion {
   id: string;
@@ -18,13 +19,6 @@ interface SubmitResult {
   explanation: string;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  vocabulary: "語彙",
-  grammar: "文法",
-  listening: "聴解",
-  reading: "読解",
-};
-
 type Phase = "loading" | "answering" | "submitting" | "results" | "error";
 
 export default function QuizRunner({
@@ -32,12 +26,20 @@ export default function QuizRunner({
   levelId,
   category,
   learnerName,
+  dict,
 }: {
   learnerId: string;
   levelId: string;
   category?: string;
   learnerName: string;
+  dict: Dictionary;
 }) {
+  const CATEGORY_LABELS: Record<string, string> = {
+    vocabulary: dict.category.vocabulary,
+    grammar: dict.category.grammar,
+    listening: dict.category.listening,
+    reading: dict.category.reading,
+  };
   const [phase, setPhase] = useState<Phase>("loading");
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [index, setIndex] = useState(0);
@@ -55,7 +57,7 @@ export default function QuizRunner({
       .then((data) => {
         if (cancelled) return;
         if (!data.questions || data.questions.length === 0) {
-          setErrorMsg("この条件のクイズ問題が見つかりませんでした。");
+          setErrorMsg(dict.quiz.noQuestionsFound);
           setPhase("error");
           return;
         }
@@ -67,7 +69,7 @@ export default function QuizRunner({
       })
       .catch(() => {
         if (!cancelled) {
-          setErrorMsg("問題の読み込みに失敗しました。");
+          setErrorMsg(dict.quiz.loadFailed);
           setPhase("error");
         }
       });
@@ -104,7 +106,7 @@ export default function QuizRunner({
   }
 
   if (phase === "loading") {
-    return <p style={{ color: "var(--text-secondary)" }}>問題を読み込んでいます...</p>;
+    return <p style={{ color: "var(--text-secondary)" }}>{dict.quiz.loading}</p>;
   }
 
   if (phase === "error") {
@@ -112,7 +114,7 @@ export default function QuizRunner({
       <div className="flex flex-col gap-3">
         <p style={{ color: "var(--status-critical)" }}>{errorMsg}</p>
         <Link href={`/dashboard/learner/${learnerId}/level/${levelId}`} className="underline" style={{ color: "var(--brand)" }}>
-          レベルページに戻る
+          {dict.quiz.backToLevel}
         </Link>
       </div>
     );
@@ -124,7 +126,7 @@ export default function QuizRunner({
       <div className="flex flex-col gap-6">
         <div className="rounded-2xl border p-6 text-center" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            {learnerName} さんの結果
+            {t(dict.quiz.resultsOf, { name: learnerName })}
           </p>
           <p className="mt-1 text-4xl font-bold" style={{ color: "var(--brand)" }}>
             {correctCount} / {results.length}
@@ -148,9 +150,9 @@ export default function QuizRunner({
                 </p>
                 <p className="mt-2 text-sm">
                   <span style={{ color: r.isCorrect ? "var(--status-good)" : "var(--status-critical)" }}>
-                    {r.isCorrect ? "正解" : "不正解"}
+                    {r.isCorrect ? dict.quiz.correct : dict.quiz.incorrect}
                   </span>
-                  <span style={{ color: "var(--text-secondary)" }}> — 正答: {q.choices[r.correctIndex]}</span>
+                  <span style={{ color: "var(--text-secondary)" }}> — {t(dict.quiz.correctAnswer, { answer: q.choices[r.correctIndex] })}</span>
                 </p>
                 {r.explanation && (
                   <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
@@ -168,14 +170,14 @@ export default function QuizRunner({
             className="rounded-full border px-4 py-2 text-sm"
             style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
           >
-            レベルページに戻る
+            {dict.quiz.backToLevel}
           </Link>
           <Link
             href={`/dashboard/learner/${learnerId}/analytics`}
             className="rounded-full px-4 py-2 text-sm font-semibold text-white"
             style={{ background: "var(--brand)" }}
           >
-            AI分析を見る
+            {dict.quiz.aiAnalysis}
           </Link>
         </div>
       </div>
@@ -236,7 +238,7 @@ export default function QuizRunner({
         className="self-end rounded-full px-6 py-2 font-semibold text-white disabled:opacity-40"
         style={{ background: "var(--brand)" }}
       >
-        {phase === "submitting" ? "採点中..." : index === questions.length - 1 ? "採点する" : "次へ"}
+        {phase === "submitting" ? dict.quiz.scoring : index === questions.length - 1 ? dict.quiz.scoreButton : dict.quiz.next}
       </button>
     </div>
   );

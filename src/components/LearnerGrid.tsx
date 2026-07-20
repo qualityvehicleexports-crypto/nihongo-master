@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Learner } from "@/lib/repo/learners";
+import { LANGUAGES } from "@/lib/i18n/languages";
 
 export default function LearnerGrid({
   initialLearners,
@@ -16,6 +17,7 @@ export default function LearnerGrid({
   const [learners, setLearners] = useState(initialLearners);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
+  const [uiLanguage, setUiLanguage] = useState("ja");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -29,7 +31,7 @@ export default function LearnerGrid({
       const res = await fetch("/api/learners", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ displayName: name }),
+        body: JSON.stringify({ displayName: name, uiLanguage }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -119,6 +121,21 @@ export default function LearnerGrid({
               className="rounded-lg border px-3 py-2"
               style={{ borderColor: "var(--border)" }}
             />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span style={{ color: "var(--text-secondary)" }}>学習者の言語 / Language</span>
+            <select
+              value={uiLanguage}
+              onChange={(e) => setUiLanguage(e.target.value)}
+              className="rounded-lg border px-3 py-2"
+              style={{ borderColor: "var(--border)" }}
+            >
+              {LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.nativeName === l.nameJa ? l.nativeName : `${l.nativeName} / ${l.nameJa}`}
+                </option>
+              ))}
+            </select>
           </label>
           {error && (
             <p className="text-sm" style={{ color: "var(--status-critical)" }}>

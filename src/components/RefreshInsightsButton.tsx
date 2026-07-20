@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { Dictionary } from "@/lib/i18n";
 
-export default function RefreshInsightsButton({ learnerId }: { learnerId: string }) {
+export default function RefreshInsightsButton({ learnerId, dict }: { learnerId: string; dict: Dictionary }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
@@ -16,13 +17,3 @@ export default function RefreshInsightsButton({ learnerId }: { learnerId: string
           router.refresh();
         } finally {
           setBusy(false);
-        }
-      }}
-      disabled={busy}
-      className="rounded-full border px-4 py-2 text-sm font-semibold disabled:opacity-60"
-      style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
-    >
-      {busy ? "更新中..." : "分析を更新"}
-    </button>
-  );
-}

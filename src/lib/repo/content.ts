@@ -1,4 +1,5 @@
 import { all } from "../db";
+import type { LanguageCode } from "../i18n/languages";
 
 export interface Level {
   id: string;
@@ -15,6 +16,7 @@ export interface VocabItem {
   meaning_ja: string;
   meaning_en: string;
   example_sentence: string;
+  meanings_json: string;
 }
 
 export interface GrammarItem {
@@ -23,6 +25,25 @@ export interface GrammarItem {
   pattern: string;
   meaning_en: string;
   example_sentence: string;
+  meanings_json: string;
+}
+
+/**
+ * Picks the meaning to display to a learner: their own ui_language if a
+ * translation exists in meanings_json, otherwise the English meaning_en
+ * fallback (always present) — never a raw untranslated blob.
+ */
+export function localizedMeaning(
+  item: { meaning_en: string; meanings_json: string },
+  uiLanguage: LanguageCode | string | null | undefined,
+): string {
+  if (!uiLanguage || uiLanguage === "en" || uiLanguage === "ja") return item.meaning_en;
+  try {
+    const meanings = JSON.parse(item.meanings_json || "{}") as Record<string, string>;
+    return meanings[uiLanguage] || item.meaning_en;
+  } catch {
+    return item.meaning_en;
+  }
 }
 
 export interface QuizQuestionRow {

@@ -46,13 +46,38 @@ export async function getDb(): Promise<Database> {
 
   const schema = fs.readFileSync(SCHEMA_PATH, "utf-8");
   db.run(schema);
+  runMigrations(db);
   persist();
 
-  const { ensureSeeded } = await import("./seed");
+  const { ensureSeeded, backfillMeaningsTranslations } = await import("./seed");
   await ensureSeeded();
+  // Existing deployments (e.g. the live Railway DB) already had their vocab_items/
+  // grammar_items rows inserted before meanings_json existed, so ensureSeeded()'s
+  // "only seed an empty DB" guard skips them. Backfill separately, idempotently.
+  await backfillMeaningsTranslations();
   persist();
 
   return db;
+}
+
+// CREATE TABLE IF NOT EXISTS in schema.sql only helps brand-new databases —
+// it does nothing for columns added to a table that already exists on disk
+// (e.g. a live deployment with real signups). Each entry here is a single
+// idempotent ALTER TABLE; "duplicate column" failures are expected on every
+// run after the first and are swallowed on purpose.
+function runMigrations(database: Database) {
+  const statements = [
+    "ALTER TABLE learners ADD COLUMN ui_language TEXT NOT NULL DEFAULT 'ja'",
+    "ALTER TABLE vocab_items ADD COLUMN meanings_json TEXT NOT NULL DEFAULT '{}'",
+    "ALTER TABLE grammar_items ADD COLUMN meanings_json TEXT NOT NULL DEFAULT '{}'",
+  ];
+  for (const stmt of statements) {
+    try {
+      database.run(stmt);
+    } catch {
+      // Column already exists — already migrated, nothing to do.
+    }
+  }
 }
 
 /** Write the in-memory database back to disk. Cheap enough for prototype-scale data. */

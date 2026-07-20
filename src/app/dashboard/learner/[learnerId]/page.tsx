@@ -4,6 +4,8 @@ import { getSession } from "@/lib/auth";
 import { getLearner } from "@/lib/repo/learners";
 import { listLevels } from "@/lib/repo/content";
 import { getAnalytics } from "@/lib/ai";
+import { getDictionary, t } from "@/lib/i18n";
+import LanguagePicker from "@/components/LanguagePicker";
 
 const LEVEL_COLORS: Record<string, string> = {
   N5: "var(--series-1)",
@@ -22,6 +24,7 @@ export default async function LearnerHomePage({ params }: { params: Promise<{ le
   if (!learner || learner.account_id !== session.accountId) notFound();
 
   const [levels, analytics] = await Promise.all([listLevels(), getAnalytics(learnerId)]);
+  const dict = getDictionary(learner.ui_language);
 
   return (
     <div className="flex flex-col gap-8">
@@ -38,27 +41,28 @@ export default async function LearnerHomePage({ params }: { params: Promise<{ le
               {learner.display_name}
             </h1>
             <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              現在のレベル: {learner.current_level_code} ・ 目標: {learner.target_level_code}
+              {dict.learnerHome.currentLevel}: {learner.current_level_code} ・ {dict.learnerHome.target}: {learner.target_level_code}
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <LanguagePicker learnerId={learnerId} currentLanguage={learner.ui_language} />
           <Link
             href={`/dashboard/learner/${learnerId}/analytics`}
             className="rounded-full border px-4 py-2 text-sm font-semibold"
             style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
           >
-            AI分析を見る
+            {dict.learnerHome.aiAnalysis}
           </Link>
           <Link href="/dashboard" className="rounded-full border px-4 py-2 text-sm" style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}>
-            プロフィール選択に戻る
+            {dict.learnerHome.backToProfiles}
           </Link>
         </div>
       </div>
 
       <div className="rounded-2xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>
         <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--brand)" }}>
-          AIコーチからのひとこと
+          {dict.learnerHome.aiCoachNote}
         </p>
         <p className="mt-2 text-base leading-relaxed" style={{ color: "var(--text-primary)" }}>
           {analytics.narrative}
@@ -67,7 +71,7 @@ export default async function LearnerHomePage({ params }: { params: Promise<{ le
 
       <div>
         <h2 className="mb-3 text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-          レベルを選ぶ
+          {dict.learnerHome.chooseLevel}
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
           {levels.map((level) => {
@@ -92,7 +96,9 @@ export default async function LearnerHomePage({ params }: { params: Promise<{ le
                   {level.name_en}
                 </span>
                 <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  {stat ? `正答率 ${Math.round(stat.accuracy * 100)}%（${stat.total}問）` : "未挑戦"}
+                  {stat
+                    ? t(dict.learnerHome.accuracyWithCount, { pct: Math.round(stat.accuracy * 100), total: stat.total })
+                    : dict.learnerHome.notAttempted}
                 </span>
               </Link>
             );

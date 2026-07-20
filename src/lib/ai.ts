@@ -2,6 +2,8 @@ import { accuracyByCategory, accuracyByLevel, dailyActivity, overallStats } from
 import { getLearner } from "./repo/learners";
 import { listLevels, listGrammar, listVocab, type Level } from "./repo/content";
 import { all, get, run } from "./db";
+import { getDictionary, t, type Dictionary } from "./i18n";
+import { languageMeta } from "./i18n/languages";
 
 // ---------------------------------------------------------------------------
 // AI progress-analysis engine.
@@ -20,12 +22,15 @@ import { all, get, run } from "./db";
 // end — set the key in production to upgrade the copy quality.
 // ---------------------------------------------------------------------------
 
-const CATEGORY_LABELS: Record<string, string> = {
-  vocabulary: "語彙 (Vocabulary)",
-  grammar: "文法 (Grammar)",
-  listening: "聴解 (Listening)",
-  reading: "読解 (Reading)",
-};
+function categoryLabel(dict: Dictionary, category: string): string {
+  const labels: Record<string, string> = {
+    vocabulary: dict.category.vocabulary,
+    grammar: dict.category.grammar,
+    listening: dict.category.listening,
+    reading: dict.category.reading,
+  };
+  return labels[category] ?? category;
+}
 
 export interface Analytics {
   learnerId: string;
@@ -65,6 +70,7 @@ function levelSortOrder(levels: Level[], code: string): number {
 }
 
 function predictPace(
+  dict: Dictionary,
   levels: Level[],
   currentLevel: string,
   targetLevel: string,
@@ -80,7 +86,7 @@ function predictPace(
       passProbabilityPercent: null,
       estimatedWeeksToTarget: null,
       levelsRemaining,
-      note: "問題演習の記録がまだ少ないため、予測にはあと数回のクイズが必要です。",
+      note: dict.pace.needMoreData,
     };
   }
 
@@ -99,6 +105,12 @@ function predictPace(
   const confidence: PacePrediction["confidence"] =
     overall.totalAttempts >= 60 && overall.activeDays >= 10 ? "high" : "medium";
 
+  const confidenceLabels: Record<PacePrediction["confidence"], string> = {
+    low: dict.pace.confidenceLow,
+    medium: dict.pace.confidenceMedium,
+    high: dict.pace.confidenceHigh,
+  };
+
   return {
     confidence,
     passProbabilityPercent: clampedProbability,
@@ -106,12 +118,13 @@ function predictPace(
     levelsRemaining,
     note:
       levelsRemaining === 0
-        ? "目標レベルに到達済みです。維持のための復習を続けましょう。"
-        : `現在のペースで学習を続けた場合の目安です（信頼度: ${confidence}）。`,
+        ? dict.pace.levelReached
+        : t(dict.pace.note, { confidence: confidenceLabels[confidence] }),
   };
 }
 
 async function recommendNextSteps(
+  dict: Dictionary,
   learnerId: string,
   currentLevel: string,
   categoryStats: Analytics["categoryStats"],
@@ -126,16 +139,16 @@ async function recommendNextSteps(
   if (weakest) {
     recs.push({
       type: "quiz",
-      title: `${CATEGORY_LABELS[weakest.category] ?? weakest.category} を重点的に復習`,
-      description: `直近の正答率は${Math.round(weakest.accuracy * 100)}%です。同じカテゴリーの問題をもう一度解いて定着させましょう。`,
+      title: t(dict.recommendations.reviewWeakestTitle, { category: categoryLabel(dict, weakest.category) }),
+      description: t(dict.recommendations.reviewWeakestDescription, { pct: Math.round(weakest.accuracy * 100) }),
       levelId: currentLevel,
       category: weakest.category,
     });
   } else {
     recs.push({
       type: "quiz",
-      title: `${currentLevel} の総合クイズに挑戦`,
-      description: "まずは全カテゴリーのクイズを解いて、現在の実力を測りましょう。",
+      title: t(dict.recommendations.tryComprehensiveTitle, { level: currentLevel }),
+      description: dict.recommendations.tryComprehensiveDescription,
       levelId: currentLevel,
     });
   }
@@ -144,8 +157,8 @@ async function recommendNextSteps(
   if (vocab.length > 0) {
     recs.push({
       type: "vocab_review",
-      title: `${currentLevel} の語彙リストを復習`,
-      description: `${vocab.length}語のうち、まだ自信がない単語を中心に見直しましょう。`,
+      title: t(dict.recommendations.vocabReviewTitle, { level: currentLevel }),
+      description: t(dict.recommendations.vocabReviewDescription, { count: vocab.length }),
       levelId: currentLevel,
     });
   }
@@ -154,8 +167,8 @@ async function recommendNextSteps(
   if (grammar.length > 0) {
     recs.push({
       type: "grammar_review",
-      title: `${currentLevel} の文法パターンを復習`,
-      description: `${grammar.length}個の文型を例文と一緒に確認しましょう。`,
+      title: t(dict.recommendations.grammarReviewTitle, { level: currentLevel }),
+      description: t(dict.recommendations.grammarReviewDescription, { count: grammar.length }),
       levelId: currentLevel,
     });
   }
@@ -166,8 +179,8 @@ async function recommendNextSteps(
     if (next) {
       recs.push({
         type: "level_up",
-        title: `${next.id} に進む準備ができています`,
-        description: `${currentLevel} の正答率が安定しています。${next.id} のクイズも試してみましょう。`,
+        title: t(dict.recommendations.levelUpTitle, { level: next.id }),
+        description: t(dict.recommendations.levelUpDescription, { current: currentLevel, level: next.id }),
         levelId: next.id,
       });
     }
@@ -176,46 +189,53 @@ async function recommendNextSteps(
   return recs;
 }
 
-function buildTemplateNarrative(a: {
-  overall: Analytics["overall"];
-  weakestCategory: string | null;
-  strongestCategory: string | null;
-  pace: PacePrediction;
-  currentLevel: string;
-  targetLevel: string;
-}): string {
+function buildTemplateNarrative(
+  dict: Dictionary,
+  a: {
+    overall: Analytics["overall"];
+    weakestCategory: string | null;
+    strongestCategory: string | null;
+    pace: PacePrediction;
+    currentLevel: string;
+    targetLevel: string;
+  },
+): string {
   const acc = Math.round(a.overall.accuracy * 100);
   const lines: string[] = [];
 
   if (a.overall.totalAttempts === 0) {
-    return "まだクイズの記録がありません。まずはレベルを選んでクイズに挑戦してみましょう。AIが弱点と学習ペースを分析します。";
+    return dict.narrative.noAttempts;
   }
 
-  lines.push(
-    `これまでに${a.overall.totalAttempts}問に取り組み、正答率は${acc}%です（学習日数: ${a.overall.activeDays}日）。`,
-  );
+  lines.push(t(dict.narrative.summary, { total: a.overall.totalAttempts, acc, days: a.overall.activeDays }));
 
   if (a.weakestCategory) {
-    lines.push(`特に${CATEGORY_LABELS[a.weakestCategory] ?? a.weakestCategory}の正答率が低めなので、重点的に復習するのがおすすめです。`);
+    lines.push(t(dict.narrative.weakest, { category: categoryLabel(dict, a.weakestCategory) }));
   }
   if (a.strongestCategory && a.strongestCategory !== a.weakestCategory) {
-    lines.push(`${CATEGORY_LABELS[a.strongestCategory] ?? a.strongestCategory}は好調です。この調子を維持しましょう。`);
+    lines.push(t(dict.narrative.strongest, { category: categoryLabel(dict, a.strongestCategory) }));
   }
 
   if (a.pace.passProbabilityPercent !== null) {
     lines.push(
-      `現在のペースでは、${a.targetLevel}到達まで目安で約${a.pace.estimatedWeeksToTarget}週間、合格可能性は約${a.pace.passProbabilityPercent}%と推定されます。`,
+      t(dict.narrative.paceKnown, {
+        target: a.targetLevel,
+        weeks: a.pace.estimatedWeeksToTarget ?? 0,
+        pct: a.pace.passProbabilityPercent,
+      }),
     );
   } else {
-    lines.push("学習ペースの予測には、もう少しクイズの記録が必要です。");
+    lines.push(dict.narrative.paceUnknown);
   }
 
   return lines.join(" ");
 }
 
-async function generateNarrativeWithClaude(promptContext: string): Promise<string | null> {
+async function generateNarrativeWithClaude(promptContext: string, uiLanguage: string): Promise<string | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
+
+  const language = languageMeta(uiLanguage).englishName;
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -229,7 +249,10 @@ async function generateNarrativeWithClaude(promptContext: string): Promise<strin
         model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5",
         max_tokens: 300,
         system:
-          "あなたは日本語学習アプリのAIコーチです。生徒の学習データ(JSON)を読み、3〜4文の日本語で、温かく具体的な励ましと次の一歩を提案してください。数値を並べるだけでなく、意味づけをしてください。",
+          `You are an AI coach inside a Japanese-language-learning app. Read the student's ` +
+          `learning data (JSON) and write 3-4 warm, specific sentences of encouragement and a ` +
+          `concrete next step, entirely in ${language}. Don't just restate the numbers — give ` +
+          `them meaning. Respond only in ${language}, with no other language mixed in.`,
         messages: [{ role: "user", content: promptContext }],
       }),
     });
@@ -245,18 +268,23 @@ async function generateNarrativeWithClaude(promptContext: string): Promise<strin
 const CACHE_TTL_MS = 5 * 60 * 1000; // recompute at most every 5 minutes per learner
 
 export async function getAnalytics(learnerId: string, opts: { forceRefresh?: boolean } = {}): Promise<Analytics> {
+  const learner = await getLearner(learnerId);
+  if (!learner) throw new Error("Learner not found");
+  const dict = getDictionary(learner.ui_language);
+
   if (!opts.forceRefresh) {
     const cached = await get<{ generated_at: string; payload_json: string }>(
       "SELECT generated_at, payload_json FROM ai_insight_cache WHERE learner_id = ?",
       [learnerId],
     );
     if (cached && Date.now() - new Date(cached.generated_at).getTime() < CACHE_TTL_MS) {
-      return JSON.parse(cached.payload_json) as Analytics;
+      const parsed = JSON.parse(cached.payload_json) as Analytics & { language?: string };
+      // A cached payload from before a learner switched languages (or from
+      // before this field existed) would otherwise serve narrative text in
+      // the wrong language for up to CACHE_TTL_MS — recompute instead.
+      if (parsed.language === learner.ui_language) return parsed;
     }
   }
-
-  const learner = await getLearner(learnerId);
-  if (!learner) throw new Error("Learner not found");
 
   const levels = await listLevels();
   const [overall, categoryStats, levelStats, dailyTrend] = await Promise.all([
@@ -276,8 +304,9 @@ export async function getAnalytics(learnerId: string, opts: { forceRefresh?: boo
     currentLevelStat && currentLevelStat.total >= 15 && currentLevelStat.accuracy >= 0.8,
   );
 
-  const pace = predictPace(levels, learner.current_level_code, learner.target_level_code, overall);
+  const pace = predictPace(dict, levels, learner.current_level_code, learner.target_level_code, overall);
   const recommendations = await recommendNextSteps(
+    dict,
     learnerId,
     learner.current_level_code,
     categoryStats,
@@ -285,7 +314,7 @@ export async function getAnalytics(learnerId: string, opts: { forceRefresh?: boo
     levels,
   );
 
-  const templateNarrative = buildTemplateNarrative({
+  const templateNarrative = buildTemplateNarrative(dict, {
     overall,
     weakestCategory,
     strongestCategory,
@@ -303,9 +332,10 @@ export async function getAnalytics(learnerId: string, opts: { forceRefresh?: boo
       categoryStats,
       pace,
     }),
+    learner.ui_language,
   );
 
-  const analytics: Analytics = {
+  const analytics: Analytics & { language: string } = {
     learnerId,
     currentLevel: learner.current_level_code,
     targetLevel: learner.target_level_code,
@@ -320,6 +350,7 @@ export async function getAnalytics(learnerId: string, opts: { forceRefresh?: boo
     recommendations,
     narrative: claudeNarrative ?? templateNarrative,
     generatedAt: new Date().toISOString(),
+    language: learner.ui_language,
   };
 
   await run(
@@ -331,6 +362,16 @@ export async function getAnalytics(learnerId: string, opts: { forceRefresh?: boo
   return analytics;
 }
 
+/**
+ * Drop the cached analytics for a learner. Call this right after new quiz
+ * attempts are recorded so the next dashboard/analytics view recomputes
+ * fresh numbers instead of serving a stale pre-quiz snapshot for up to
+ * CACHE_TTL_MS. Cheap: it's a single-row delete, not a recompute.
+ */
+export async function invalidateAnalyticsCache(learnerId: string): Promise<void> {
+  await run("DELETE FROM ai_insight_cache WHERE learner_id = ?", [learnerId]);
+}
+
 // Re-export for API routes that only need raw counts (e.g. billing/admin views).
 export async function countTotalAttemptsAcrossAccount(accountId: string): Promise<number> {
   const row = await all<{ c: number }>(
@@ -340,13 +381,4 @@ export async function countTotalAttemptsAcrossAccount(accountId: string): Promis
     [accountId],
   );
   return row[0]?.c ?? 0;
-}
-/**
- * Drop the cached analytics for a learner. Call this right after new quiz
- * attempts are recorded so the next dashboard/analytics view recomputes
- * fresh numbers instead of serving a stale pre-quiz snapshot for up to
- * CACHE_TTL_MS. Cheap: it's a single-row delete, not a recompute.
- */
-export async function invalidateAnalyticsCache(learnerId: string): Promise<void> {
-  await run("DELETE FROM ai_insight_cache WHERE learner_id = ?", [learnerId]);
 }

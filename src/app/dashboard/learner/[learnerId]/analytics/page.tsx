@@ -7,13 +7,8 @@ import CategoryBarChart from "@/components/charts/CategoryBarChart";
 import ProgressLineChart from "@/components/charts/ProgressLineChart";
 import PassProbabilityGauge from "@/components/charts/PassProbabilityGauge";
 import RefreshInsightsButton from "@/components/RefreshInsightsButton";
+import { getDictionary, t, localeTag } from "@/lib/i18n";
 
-const CATEGORY_LABELS: Record<string, string> = {
-  vocabulary: "語彙",
-  grammar: "文法",
-  listening: "聴解",
-  reading: "読解",
-};
 const CATEGORY_ORDER = ["vocabulary", "grammar", "listening", "reading"];
 
 export default async function AnalyticsPage({ params }: { params: Promise<{ learnerId: string }> }) {
@@ -25,6 +20,13 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ lear
   if (!learner || learner.account_id !== session.accountId) notFound();
 
   const analytics = await getAnalytics(learnerId);
+  const dict = getDictionary(learner.ui_language);
+  const CATEGORY_LABELS: Record<string, string> = {
+    vocabulary: dict.category.vocabulary,
+    grammar: dict.category.grammar,
+    listening: dict.category.listening,
+    reading: dict.category.reading,
+  };
 
   const categoryData = CATEGORY_ORDER.map((cat) => {
     const stat = analytics.categoryStats.find((c) => c.category === cat);
@@ -41,41 +43,41 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ lear
       <div className="flex items-center justify-between">
         <div>
           <Link href={`/dashboard/learner/${learnerId}`} className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            ← {learner.display_name} のホームに戻る
+            {t(dict.analytics.backToHome, { name: learner.display_name })}
           </Link>
           <h1 className="mt-2 text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
-            AI進捗分析
+            {dict.analytics.title}
           </h1>
         </div>
-        <RefreshInsightsButton learnerId={learnerId} />
+        <RefreshInsightsButton learnerId={learnerId} dict={dict} />
       </div>
 
       <div className="rounded-2xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>
         <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--brand)" }}>
-          AIコーチの分析
+          {dict.analytics.coachAnalysis}
         </p>
         <p className="mt-2 text-base leading-relaxed" style={{ color: "var(--text-primary)" }}>
           {analytics.narrative}
         </p>
         <p className="mt-3 text-xs" style={{ color: "var(--text-muted)" }}>
-          最終更新: {new Date(analytics.generatedAt).toLocaleString("ja-JP")}
+          {t(dict.analytics.lastUpdated, { date: new Date(analytics.generatedAt).toLocaleString(localeTag(learner.ui_language)) })}
         </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-2xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>
           <h2 className="mb-1 text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-            弱点・得意分野
+            {dict.analytics.weakStrongTitle}
           </h2>
           <p className="mb-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-            カテゴリー別の正答率
+            {dict.analytics.weakStrongSubtitle}
           </p>
           <CategoryBarChart data={categoryData} />
         </section>
 
         <section className="rounded-2xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>
           <h2 className="mb-1 text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-            合格可能性・学習ペース予測
+            {dict.analytics.paceTitle}
           </h2>
           <p className="mb-4 text-sm" style={{ color: "var(--text-secondary)" }}>
             {learner.current_level_code} → {learner.target_level_code}
@@ -84,23 +86,24 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ lear
             percent={analytics.pace.passProbabilityPercent}
             weeks={analytics.pace.estimatedWeeksToTarget}
             note={analytics.pace.note}
+            dict={dict}
           />
         </section>
       </div>
 
       <section className="rounded-2xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>
         <h2 className="mb-1 text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-          学習の推移（直近30日）
+          {dict.analytics.trendTitle}
         </h2>
         <p className="mb-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-          日ごとの正答率
+          {dict.analytics.trendSubtitle}
         </p>
-        <ProgressLineChart data={analytics.dailyTrend} />
+        <ProgressLineChart data={analytics.dailyTrend} dict={dict} />
       </section>
 
       <section className="rounded-2xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>
         <h2 className="mb-4 text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-          次のおすすめ学習内容
+          {dict.analytics.recommendationsTitle}
         </h2>
         <div className="flex flex-col gap-3">
           {analytics.recommendations.map((rec, i) => (
