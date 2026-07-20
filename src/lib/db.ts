@@ -29,6 +29,19 @@ let dirty = false;
 // "UNIQUE constraint failed: levels.id". This bites hardest right after a
 // fresh deploy (empty/ephemeral DB file) when several requests land at once.
 let initPromise: Promise<Database> | null = null;
+// mtime (ms) of DB_PATH as of the last time *this module instance* loaded it
+// into `db`. Route Handlers and page Server Components in this Next.js
+// version do not reliably share one module-level singleton the way a plain
+// Node process would (each can end up with its own copy of this file's
+// module state) — verified by writing through one route and reading through
+// another. Without this check, a write made via one instance (persisted to
+// disk) can be invisible to a different instance's stale in-memory `db`,
+// e.g. a PATCH that changes ui_language "succeeding" while the very next
+// page render still shows the old language. Comparing against the file's
+// mtime on every getDb() call and reloading when it has moved keeps every
+// instance eventually consistent with what's actually on disk, at the cost
+// of a cheap fs.stat per call.
+let loadedMtimeMs: number | null = null;
 
 async function getSql(): Promise<SqlJsStatic> {
   if (!SQL) {
@@ -39,8 +52,28 @@ async function getSql(): Promise<SqlJsStatic> {
   return SQL;
 }
 
+function diskMtimeMs(): number | null {
+  try {
+    return fs.statSync(DB_PATH).mtimeMs;
+  } catch {
+    return null;
+  }
+}
+
 export async function getDb(): Promise<Database> {
-  if (db) return db;
+  if (db) {
+    const currentMtime = diskMtimeMs();
+    if (currentMtime !== null && currentMtime !== loadedMtimeMs) {
+      // Another module instance (or process) wrote to the file since we last
+      // loaded it — reload so this instance sees the latest data instead of
+      // silently serving/mutating a stale in-memory snapshot.
+      const buffer = fs.readFileSync(DB_PATH);
+      const sql = await getSql();
+      db = new sql.Database(buffer);
+      loadedMtimeMs = currentMtime;
+    }
+    return db;
+  }
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
@@ -109,6 +142,10 @@ export function persist() {
   const data = db.export();
   fs.writeFileSync(DB_PATH, Buffer.from(data));
   dirty = false;
+  // Record the mtime this write produced so this instance's next getDb()
+  // call recognizes the file as already up to date, rather than immediately
+  // re-reading the copy it just wrote.
+  loadedMtimeMs = diskMtimeMs();
 }
 
 function markDirty() {
