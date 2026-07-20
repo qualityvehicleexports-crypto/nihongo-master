@@ -21,6 +21,14 @@ const SCHEMA_PATH = path.join(process.cwd(), "src", "lib", "schema.sql");
 let SQL: SqlJsStatic | null = null;
 let db: Database | null = null;
 let dirty = false;
+// Caches the in-flight initialization Promise itself (not just the resolved
+// `db`), so concurrent early requests on a cold start all await the same
+// init instead of racing into ensureSeeded() together. Without this, two
+// requests can both see `db === null`, both see an empty `levels` table, and
+// both try to INSERT the same seed rows — the second insert then dies with
+// "UNIQUE constraint failed: levels.id". This bites hardest right after a
+// fresh deploy (empty/ephemeral DB file) when several requests land at once.
+let initPromise: Promise<Database> | null = null;
 
 async function getSql(): Promise<SqlJsStatic> {
   if (!SQL) {
@@ -33,31 +41,46 @@ async function getSql(): Promise<SqlJsStatic> {
 
 export async function getDb(): Promise<Database> {
   if (db) return db;
+  if (initPromise) return initPromise;
 
-  const sql = await getSql();
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+  initPromise = (async () => {
+    const sql = await getSql();
+    fs.mkdirSync(DATA_DIR, { recursive: true });
 
-  if (fs.existsSync(DB_PATH)) {
-    const buffer = fs.readFileSync(DB_PATH);
-    db = new sql.Database(buffer);
-  } else {
-    db = new sql.Database();
+    let database: Database;
+    if (fs.existsSync(DB_PATH)) {
+      const buffer = fs.readFileSync(DB_PATH);
+      database = new sql.Database(buffer);
+    } else {
+      database = new sql.Database();
+    }
+    db = database;
+
+    const schema = fs.readFileSync(SCHEMA_PATH, "utf-8");
+    database.run(schema);
+    runMigrations(database);
+    persist();
+
+    const { ensureSeeded, backfillMeaningsTranslations } = await import("./seed");
+    await ensureSeeded();
+    // Existing deployments (e.g. the live Railway DB) already had their vocab_items/
+    // grammar_items rows inserted before meanings_json existed, so ensureSeeded()'s
+    // "only seed an empty DB" guard skips them. Backfill separately, idempotently.
+    await backfillMeaningsTranslations();
+    persist();
+
+    return database;
+  })();
+
+  try {
+    return await initPromise;
+  } catch (err) {
+    // Initialization failed — clear so a later request can retry from scratch
+    // instead of every future call permanently rejecting on this same promise.
+    initPromise = null;
+    db = null;
+    throw err;
   }
-
-  const schema = fs.readFileSync(SCHEMA_PATH, "utf-8");
-  db.run(schema);
-  runMigrations(db);
-  persist();
-
-  const { ensureSeeded, backfillMeaningsTranslations } = await import("./seed");
-  await ensureSeeded();
-  // Existing deployments (e.g. the live Railway DB) already had their vocab_items/
-  // grammar_items rows inserted before meanings_json existed, so ensureSeeded()'s
-  // "only seed an empty DB" guard skips them. Backfill separately, idempotently.
-  await backfillMeaningsTranslations();
-  persist();
-
-  return db;
 }
 
 // CREATE TABLE IF NOT EXISTS in schema.sql only helps brand-new databases —
