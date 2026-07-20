@@ -1,36 +1,16 @@
-import type { Dictionary } from "./types";
-import { isLanguageCode, type LanguageCode } from "./languages";
-import ja from "./dictionaries/ja";
-import en from "./dictionaries/en";
-import vi from "./dictionaries/vi";
-import id from "./dictionaries/id";
-import tl from "./dictionaries/tl";
-import my from "./dictionaries/my";
-import zh from "./dictionaries/zh";
-import ne from "./dictionaries/ne";
-import km from "./dictionaries/km";
-import mn from "./dictionaries/mn";
-import th from "./dictionaries/th";
-import si from "./dictionaries/si";
+import type { Dictionary } from "../types";
 
-const DICTIONARIES: Record<LanguageCode, Dictionary> = { ja, en, vi, id, tl, my, zh, ne, km, mn, th, si };
+const km: Dictionary = {
+  category: { vocabulary: "វាក្យសព្ទ", grammar: "វេយ្យាករណ៍", listening: "ការស្តាប់", listeningFull: "ការស្តាប់ (អត្ថបទសម្រង់)", reading: "ការអាន" },
+  learnerHome: { currentLevel: "កម្រិតបច្ចុប្បន្ន", target: "គោលដៅ", aiAnalysis: "មើលការវិភាគ AI", backToProfiles: "ត្រឡប់ទៅការជ្រើសរើសប្រវត្តិរូប", aiCoachNote: "សារពីគ្រូបង្វឹក AI របស់អ្នក", chooseLevel: "ជ្រើសរើសកម្រិត", accuracyWithCount: "ត្រឹមត្រូវ {pct}% ({total} សំណួរ)", notAttempted: "មិនទាន់សាកល្បងនៅឡើយទេ" },
+  level: { backToHome: "← ត្រឡប់ទៅទំព័រដើមរបស់ {name}", levelSuffix: "កម្រិត", tryQuiz: "សាកល្បងធ្វើតេស្ត", questionsCount: "10 សំណួរ", comprehensiveQuiz: "តេស្តទូលំទូលាយ", randomAllCategories: "សំណួរចៃដន្យពីគ្រប់ប្រភេទទាំងអស់", vocabListTitle: "បញ្ជីវាក្យសព្ទ (គំរូ)", grammarListTitle: "បញ្ជីវេយ្យាករណ៍ (គំរូ)", example: "ឧទាហរណ៍៖" },
+  quiz: { loading: "កំពុងផ្ទុកសំណួរ...", noQuestionsFound: "រកមិនឃើញសំណួរតេស្តសម្រាប់ការកំណត់នេះទេ។", loadFailed: "មិនអាចផ្ទុកសំណួរបានទេ។", backToLevel: "ត្រឡប់ទៅទំព័រកម្រិត", resultsOf: "លទ្ធផលរបស់ {name}", correct: "ត្រឹមត្រូវ", incorrect: "មិនត្រឹមត្រូវ", correctAnswer: "ចម្លើយត្រឹមត្រូវ៖ {answer}", next: "បន្ទាប់", scoreButton: "ដាក់ស្នើ", scoring: "កំពុងគណនាពិន្ទុ...", aiAnalysis: "មើលការវិភាគ AI" },
+  analytics: { backToHome: "← ត្រឡប់ទៅទំព័រដើមរបស់ {name}", title: "ការវិភាគវឌ្ឍនភាពដោយ AI", refresh: "ធ្វើបច្ចុប្បន្នភាពការវិភាគ", refreshing: "កំពុងធ្វើបច្ចុប្បន្នភាព...", coachAnalysis: "ការវិភាគរបស់គ្រូបង្វឹក AI", lastUpdated: "ធ្វើបច្ចុប្បន្នភាពចុងក្រោយ៖ {date}", weakStrongTitle: "ចំណុចខ្លាំង និងចំណុចខ្សោយ", weakStrongSubtitle: "ភាពត្រឹមត្រូវតាមប្រភេទ", paceTitle: "ប្រូបាប៊ីលីតេជាប់ និងល្បឿននៃការសិក្សា", trendTitle: "និន្នាការវឌ្ឍនភាព (៣០ថ្ងៃចុងក្រោយ)", trendSubtitle: "ភាពត្រឹមត្រូវប្រចាំថ្ងៃ", recommendationsTitle: "អ្វីដែលគួរសិក្សាបន្ទាប់" },
+  gauge: { statusGood: "ដំណើរការល្អ", statusWarning: "ជិតដល់ហើយ", statusSerious: "ត្រូវការពិនិត្យឡើងវិញ", statusCritical: "ត្រូវការការយកចិត្តទុកដាក់", weeksEstimate: "ប៉ាន់ស្មានប្រហែល {weeks} សប្តាហ៍ដើម្បីឈានដល់គោលដៅរបស់អ្នក។" },
+  lineChart: { noData: "មិនទាន់មានកំណត់ត្រាការសិក្សានៅឡើយទេ។ សូមសាកល្បងធ្វើតេស្ត ហើយភាពត្រឹមត្រូវប្រចាំថ្ងៃរបស់អ្នកនឹងបង្ហាញនៅទីនេះ។", showTable: "បង្ហាញតារាង", hideTable: "លាក់តារាង", tooltipAccuracy: "ត្រឹមត្រូវ {pct}% ({correct}/{attempts} សំណួរ)", colDate: "កាលបរិច្ឆេទ", colAttempts: "ចំនួនដងព្យាយាម", colCorrect: "ត្រឹមត្រូវ", colAccuracy: "ភាពត្រឹមត្រូវ" },
+  narrative: { noAttempts: "មិនទាន់មានប្រវត្តិតេស្តនៅឡើយទេ។ សូមជ្រើសរើសកម្រិត ហើយសាកល្បងធ្វើតេស្តដើម្បីចាប់ផ្តើម — AI នឹងវិភាគចំណុចខ្សោយ និងល្បឿននៃការសិក្សារបស់អ្នក នៅពេលដែលអ្នកមានទិន្នន័យខ្លះ។", summary: "អ្នកបានឆ្លើយសំណួរចំនួន {total} រហូតមកដល់ពេលនេះ ដោយមានភាពត្រឹមត្រូវ {acc}% (សកម្មរយៈពេល {days} ថ្ងៃ)។", weakest: "ភាពត្រឹមត្រូវរបស់អ្នកក្នុង {category} ទាបជាងផ្នែកផ្សេងទៀតបន្តិច ដូច្នេះគួរពិនិត្យផ្នែកនេះជាមុនសិន។", strongest: "អ្នកកំពុងធ្វើបានល្អក្នុង {category} — សូមបន្តខិតខំបន្តទៀត។", paceKnown: "តាមល្បឿនបច្ចុប្បន្នរបស់អ្នក អ្នកត្រូវបានប៉ាន់ស្មានថានឹងឈានដល់ {target} ក្នុងរយៈពេលប្រហែល {weeks} សប្តាហ៍ ជាមួយនឹងប្រូបាប៊ីលីតេជាប់ប្រហែល {pct}%។", paceUnknown: "ត្រូវការធ្វើតេស្តបន្ថែមទៀតបន្តិចទៀត មុននឹងអាចប៉ាន់ស្មានល្បឿននៃការសិក្សាបាន។" },
+  pace: { levelReached: "អ្នកបានឈានដល់កម្រិតគោលដៅរបស់អ្នករួចហើយ។ សូមបន្តពិនិត្យឡើងវិញដើម្បីរក្សាវា។", note: "នេះជាការប៉ាន់ស្មានដោយផ្អែកលើល្បឿនបច្ចុប្បន្នរបស់អ្នក (កម្រិតទំនុកចិត្ត៖ {confidence})។", needMoreData: "ប្រវត្តិតេស្តនៅមានតិចនៅឡើយ — ត្រូវការធ្វើតេស្តបន្ថែមទៀតដើម្បីទទួលបានការប៉ាន់ស្មានដែលអាចទុកចិត្តបាន។", confidenceLow: "ទាប", confidenceMedium: "មធ្យម", confidenceHigh: "ខ្ពស់" },
+  recommendations: { reviewWeakestTitle: "ផ្តោតលើការពិនិត្យឡើងវិញ {category}", reviewWeakestDescription: "ភាពត្រឹមត្រូវថ្មីៗរបស់អ្នកនៅទីនោះគឺ {pct}%។ សូមសាកល្បងប្រភេទដដែលម្តងទៀត ដើម្បីជួយឱ្យចងចាំបានយូរ។", tryComprehensiveTitle: "សាកល្បងតេស្តទូលំទូលាយកម្រិត {level}", tryComprehensiveDescription: "ចាប់ផ្តើមជាមួយតេស្តដែលរួមបញ្ចូលគ្រប់ប្រភេទទាំងអស់ ដើម្បីមើលកម្រិតបច្ចុប្បន្នរបស់អ្នក។", vocabReviewTitle: "ពិនិត្យឡើងវិញនូវបញ្ជីវាក្យសព្ទកម្រិត {level}", vocabReviewDescription: "ពិនិត្យមើលពាក្យទាំង {count} ដោយផ្តោតលើពាក្យដែលអ្នកមិនសូវជឿជាក់។", grammarReviewTitle: "ពិនិត្យឡើងវិញនូវលំនាំវេយ្យាករណ៍កម្រិត {level}", grammarReviewDescription: "ពិនិត្យមើលលំនាំទាំង {count} ព្រមទាំងឧទាហរណ៍ប្រយោគរបស់វា។", levelUpTitle: "ត្រៀមខ្លួនរួចរាល់ដើម្បីឈានទៅកម្រិត {level}", levelUpDescription: "ភាពត្រឹមត្រូវរបស់អ្នកក្នុង {current} បានរក្សាបានស្ថិរភាព — សូមសាកល្បងតេស្តកម្រិត {level} បន្ទាប់។" },
+};
 
-/** Looks up a learner's dictionary. Falls back to Japanese for an unknown/empty code. */
-export function getDictionary(code: string | null | undefined): Dictionary {
-  if (code && isLanguageCode(code)) return DICTIONARIES[code];
-  return ja;
-}
-
-// Simple {placeholder} interpolation, e.g. t(dict.level.backToHome, { name: "Taro" }).
-// Not a method on Dictionary itself so it stays a plain data object (easy to
-// json-serialize, easy for translator agents to produce).
-export function t(template: string, vars: Record<string, string | number> = {}): string {
-  return template.replace(/\{(\w+)\}/g, (match, key) => {
-    const value = vars[key];
-    return value === undefined ? match : String(value);
-  });
-}
-
-export type { Dictionary } from "./types";
-export { LANGUAGES, LANGUAGE_CODES, isLanguageCode, languageMeta, localeTag } from "./languages";
-export type { LanguageCode, LanguageMeta } from "./languages";
+export default km;
