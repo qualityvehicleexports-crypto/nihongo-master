@@ -87,6 +87,32 @@ export interface Dictionary {
     strongest: string; // {category}
     paceKnown: string; // {target} {weeks} {pct}
     paceUnknown: string;
+    streak: string; // {days}
+    weakVocabItem: string; // {term} {meaning}
+    weakGrammarItem: string; // {pattern} {meaning}
+  };
+  studyTime: {
+    title: string;
+    totalLabel: string;
+    todayLabel: string;
+    weekLabel: string;
+    streakLabel: string;
+    streakDays: string; // {days}
+    trendTitle: string;
+    trendSubtitle: string;
+    minutesUnit: string; // {minutes}
+    hoursMinutesUnit: string; // {hours} {minutes}
+    noStreak: string;
+    noData: string;
+  };
+  weakItems: {
+    title: string;
+    subtitle: string;
+    vocabTitle: string;
+    grammarTitle: string;
+    missedCount: string; // {count}
+    noWeakVocab: string;
+    noWeakGrammar: string;
   };
   pace: {
     levelReached: string;
