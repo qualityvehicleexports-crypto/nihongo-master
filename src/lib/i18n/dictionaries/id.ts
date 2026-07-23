@@ -80,8 +80,7 @@ const id: Dictionary = {
     weakest: "Akurasi Anda dalam {category} sedikit lebih rendah dibanding yang lain, jadi ada baiknya meninjau ulang bagian ini terlebih dahulu.",
     strongest: "Anda sudah baik dalam {category} — pertahankan.",
     paceKnown: "Dengan kecepatan Anda saat ini, diperkirakan Anda akan mencapai {target} dalam sekitar {weeks} minggu, dengan peluang lulus sekitar {pct}%.",
-    paceUnknown: "Diperlukan beberapa kuis lagi sebelum kecepatan belajar dapat diperkirakan.",
-  },
+    paceUnknown: "Diperlukan beberapa kuis lagi sebelum kecepatan belajar dapat diperkirakan.", streak: "Anda sedang mempertahankan rekor belajar {days} hari berturut-turut.", weakVocabItem: "Anda sering salah pada kata \"{term}\" ({meaning}) — sebaiknya ditinjau kembali.", weakGrammarItem: "Untuk tata bahasa, \"{pattern}\" ({meaning}) sebaiknya dipelajari lagi." },
   pace: {
     levelReached: "Anda sudah mencapai level target Anda. Teruskan meninjau ulang untuk mempertahankannya.",
     note: "Ini adalah perkiraan berdasarkan kecepatan Anda saat ini (tingkat keyakinan: {confidence}).",
@@ -102,6 +101,8 @@ const id: Dictionary = {
     levelUpTitle: "Siap melanjutkan ke {level}",
     levelUpDescription: "Akurasi Anda di {current} sudah stabil — coba kuis {level} berikutnya.",
   },
+  studyTime: { title: "Waktu belajar", totalLabel: "Total waktu belajar", todayLabel: "Hari ini", weekLabel: "Minggu ini", streakLabel: "Rekor belajar berturut-turut", streakDays: "{days} hari", trendTitle: "Tren waktu belajar (30 hari terakhir)", trendSubtitle: "Menit belajar per hari", minutesUnit: "{minutes} menit", hoursMinutesUnit: "{hours} jam {minutes} menit", noStreak: "Belum ada catatan belajar", noData: "Belum ada waktu belajar yang tercatat. Catatan akan mulai begitu Anda membuka kuis atau daftar kosakata." },
+  weakItems: { title: "Kosakata & tata bahasa yang lemah", subtitle: "Item yang sering Anda salah — sebaiknya ditinjau lebih teliti.", vocabTitle: "Kosakata untuk ditinjau", grammarTitle: "Tata bahasa untuk ditinjau", missedCount: "Salah {count} kali", noWeakVocab: "Belum ada kosakata lemah yang teridentifikasi.", noWeakGrammar: "Belum ada tata bahasa lemah yang teridentifikasi." },
 };
 
 export default id;

@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { listLearners } from "@/lib/repo/learners";
 import { getAccountById } from "@/lib/repo/accounts";
+import { getLearnerSummaryCards } from "@/lib/dashboardSummary";
 import LearnerGrid from "@/components/LearnerGrid";
 
 export default async function DashboardPage() {
@@ -9,6 +10,7 @@ export default async function DashboardPage() {
 
   const account = await getAccountById(session.accountId);
   const learners = await listLearners(session.accountId);
+  const summaries = await getLearnerSummaryCards(learners.map((l) => l.id));
 
   return (
     <div className="flex flex-col gap-6">
@@ -20,7 +22,7 @@ export default async function DashboardPage() {
           このアカウントでは最大{account?.max_learners ?? 20}人の学習者プロフィールを作成できます。
         </p>
       </div>
-      <LearnerGrid initialLearners={learners} maxLearners={account?.max_learners ?? 20} />
+      <LearnerGrid initialLearners={learners} maxLearners={account?.max_learners ?? 20} initialSummaries={summaries} />
     </div>
   );
 }

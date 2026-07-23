@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { getLearner } from "@/lib/repo/learners";
 import { listGrammar, listVocab, localizedMeaning } from "@/lib/repo/content";
 import { getDictionary, t } from "@/lib/i18n";
+import StudyTimeTracker from "@/components/StudyTimeTracker";
 
 export default async function LevelPage({
   params,
@@ -29,6 +30,7 @@ export default async function LevelPage({
 
   return (
     <div className="flex flex-col gap-8">
+      <StudyTimeTracker learnerId={learnerId} activityType="browse" levelId={levelCode} />
       <div>
         <Link href={`/dashboard/learner/${learnerId}`} className="text-sm" style={{ color: "var(--text-secondary)" }}>
           {t(dict.level.backToHome, { name: learner.display_name })}

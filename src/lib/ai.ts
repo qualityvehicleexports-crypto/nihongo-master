@@ -1,6 +1,15 @@
 import { accuracyByCategory, accuracyByLevel, dailyActivity, overallStats } from "./repo/progress";
 import { getLearner } from "./repo/learners";
 import { listLevels, listGrammar, listVocab, type Level } from "./repo/content";
+import {
+  currentStreakDays,
+  dailyStudyMinutes,
+  lastActiveAt,
+  minutesThisWeek,
+  minutesToday,
+  studyTimeTotals,
+} from "./repo/studyTime";
+import { weakItemsForLearner, type WeakItems } from "./repo/weakItems";
 import { all, get, run } from "./db";
 import { getDictionary, t, type Dictionary } from "./i18n";
 import { languageMeta } from "./i18n/languages";
@@ -32,6 +41,17 @@ function categoryLabel(dict: Dictionary, category: string): string {
   return labels[category] ?? category;
 }
 
+export interface StudyTimeSummary {
+  totalMinutes: number;
+  quizMinutes: number;
+  browseMinutes: number;
+  minutesToday: number;
+  minutesThisWeek: number;
+  streakDays: number;
+  lastActiveAt: string | null;
+  dailyTrend: Awaited<ReturnType<typeof dailyStudyMinutes>>;
+}
+
 export interface Analytics {
   learnerId: string;
   currentLevel: string;
@@ -47,6 +67,8 @@ export interface Analytics {
   recommendations: Recommendation[];
   narrative: string;
   generatedAt: string;
+  studyTime: StudyTimeSummary;
+  weakItems: WeakItems;
 }
 
 export interface PacePrediction {
@@ -198,6 +220,8 @@ function buildTemplateNarrative(
     pace: PacePrediction;
     currentLevel: string;
     targetLevel: string;
+    studyTime: StudyTimeSummary;
+    weakItems: WeakItems;
   },
 ): string {
   const acc = Math.round(a.overall.accuracy * 100);
@@ -209,11 +233,27 @@ function buildTemplateNarrative(
 
   lines.push(t(dict.narrative.summary, { total: a.overall.totalAttempts, acc, days: a.overall.activeDays }));
 
+  if (a.studyTime.streakDays >= 2) {
+    lines.push(t(dict.narrative.streak, { days: a.studyTime.streakDays }));
+  }
+
   if (a.weakestCategory) {
     lines.push(t(dict.narrative.weakest, { category: categoryLabel(dict, a.weakestCategory) }));
   }
   if (a.strongestCategory && a.strongestCategory !== a.weakestCategory) {
     lines.push(t(dict.narrative.strongest, { category: categoryLabel(dict, a.strongestCategory) }));
+  }
+
+  // Name one specific weak vocab item and one specific weak grammar pattern
+  // (if any were identified) so the coaching note gives something concrete
+  // to act on, not just a category-level accuracy number.
+  const topWeakVocab = a.weakItems.vocab[0];
+  if (topWeakVocab) {
+    lines.push(t(dict.narrative.weakVocabItem, { term: topWeakVocab.key, meaning: topWeakVocab.meaningEn }));
+  }
+  const topWeakGrammar = a.weakItems.grammar[0];
+  if (topWeakGrammar) {
+    lines.push(t(dict.narrative.weakGrammarItem, { pattern: topWeakGrammar.key, meaning: topWeakGrammar.meaningEn }));
   }
 
   if (a.pace.passProbabilityPercent !== null) {
@@ -252,7 +292,13 @@ async function generateNarrativeWithClaude(promptContext: string, uiLanguage: st
           `You are an AI coach inside a Japanese-language-learning app. Read the student's ` +
           `learning data (JSON) and write 3-4 warm, specific sentences of encouragement and a ` +
           `concrete next step, entirely in ${language}. Don't just restate the numbers — give ` +
-          `them meaning. Respond only in ${language}, with no other language mixed in.`,
+          `them meaning. If the data includes studyTime (total/today/this-week minutes, streak ` +
+          `days), weave in a specific, encouraging observation about their study habits — e.g. ` +
+          `praising a streak, or gently noting if they've been quiet lately. If weakVocab or ` +
+          `weakGrammar entries are present, name at least one specific term or pattern (with its ` +
+          `meaning) they keep missing rather than only speaking in category-level percentages — ` +
+          `that concreteness is what makes the coaching feel personal. Respond only in ${language}, ` +
+          `with no other language mixed in.`,
         messages: [{ role: "user", content: promptContext }],
       }),
     });
@@ -287,12 +333,42 @@ export async function getAnalytics(learnerId: string, opts: { forceRefresh?: boo
   }
 
   const levels = await listLevels();
-  const [overall, categoryStats, levelStats, dailyTrend] = await Promise.all([
+  const [
+    overall,
+    categoryStats,
+    levelStats,
+    dailyTrend,
+    timeTotals,
+    todayMinutes,
+    weekMinutes,
+    streakDays,
+    lastActive,
+    studyDailyTrend,
+    weakItems,
+  ] = await Promise.all([
     overallStats(learnerId),
     accuracyByCategory(learnerId),
     accuracyByLevel(learnerId),
     dailyActivity(learnerId, 30),
+    studyTimeTotals(learnerId),
+    minutesToday(learnerId),
+    minutesThisWeek(learnerId),
+    currentStreakDays(learnerId),
+    lastActiveAt(learnerId),
+    dailyStudyMinutes(learnerId, 30),
+    weakItemsForLearner(learnerId, 5),
   ]);
+
+  const studyTime: StudyTimeSummary = {
+    totalMinutes: Math.round(timeTotals.totalSeconds / 60),
+    quizMinutes: Math.round(timeTotals.quizSeconds / 60),
+    browseMinutes: Math.round(timeTotals.browseSeconds / 60),
+    minutesToday: todayMinutes,
+    minutesThisWeek: weekMinutes,
+    streakDays,
+    lastActiveAt: lastActive,
+    dailyTrend: studyDailyTrend,
+  };
 
   const meaningfulCategories = categoryStats.filter((c) => c.total >= 3);
   const sorted = [...meaningfulCategories].sort((a, b) => a.accuracy - b.accuracy);
@@ -321,6 +397,8 @@ export async function getAnalytics(learnerId: string, opts: { forceRefresh?: boo
     pace,
     currentLevel: learner.current_level_code,
     targetLevel: learner.target_level_code,
+    studyTime,
+    weakItems,
   });
 
   const claudeNarrative = await generateNarrativeWithClaude(
@@ -331,6 +409,17 @@ export async function getAnalytics(learnerId: string, opts: { forceRefresh?: boo
       overall,
       categoryStats,
       pace,
+      studyTime: {
+        totalMinutes: studyTime.totalMinutes,
+        minutesToday: studyTime.minutesToday,
+        minutesThisWeek: studyTime.minutesThisWeek,
+        streakDays: studyTime.streakDays,
+      },
+      // Naming specific missed vocab/grammar (not just category accuracy)
+      // gives the AI coach concrete, actionable detail to reference instead
+      // of only generic percentages.
+      weakVocab: weakItems.vocab.map((v) => ({ term: v.key, reading: v.reading, meaning: v.meaningEn, missCount: v.missCount })),
+      weakGrammar: weakItems.grammar.map((g) => ({ pattern: g.key, meaning: g.meaningEn, missCount: g.missCount })),
     }),
     learner.ui_language,
   );
@@ -350,6 +439,8 @@ export async function getAnalytics(learnerId: string, opts: { forceRefresh?: boo
     recommendations,
     narrative: claudeNarrative ?? templateNarrative,
     generatedAt: new Date().toISOString(),
+    studyTime,
+    weakItems,
     language: learner.ui_language,
   };
 

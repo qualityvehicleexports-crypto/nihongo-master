@@ -4,17 +4,45 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Learner } from "@/lib/repo/learners";
+import type { LearnerSummaryCard } from "@/lib/dashboardSummary";
 import { LANGUAGES } from "@/lib/i18n/languages";
+
+// This screen (and this component) is account-owner-facing, not
+// learner-facing — it's shown before a specific learner profile (and its
+// ui_language) is chosen, so it's intentionally Japanese-only, same as the
+// rest of src/app/dashboard/page.tsx. Per-learner localization lives on the
+// pages under /dashboard/learner/[learnerId]/*.
+
+function formatMinutesJa(totalMinutes: number): string {
+  if (totalMinutes <= 0) return "0分";
+  if (totalMinutes < 60) return `${totalMinutes}分`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes > 0 ? `${hours}時間${minutes}分` : `${hours}時間`;
+}
+
+function formatLastActiveJa(lastActiveAt: string | null): string {
+  if (!lastActiveAt) return "未学習";
+  // lastActiveAt is a SQLite datetime string ("YYYY-MM-DD HH:MM:SS"), UTC.
+  const last = new Date(lastActiveAt.replace(" ", "T") + "Z");
+  const days = Math.floor((Date.now() - last.getTime()) / (24 * 60 * 60 * 1000));
+  if (days <= 0) return "今日";
+  if (days === 1) return "昨日";
+  return `${days}日前`;
+}
 
 export default function LearnerGrid({
   initialLearners,
   maxLearners,
+  initialSummaries,
 }: {
   initialLearners: Learner[];
   maxLearners: number;
+  initialSummaries: Record<string, LearnerSummaryCard>;
 }) {
   const router = useRouter();
   const [learners, setLearners] = useState(initialLearners);
+  const [summaries] = useState(initialSummaries);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [uiLanguage, setUiLanguage] = useState("ja");
@@ -61,41 +89,80 @@ export default function LearnerGrid({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:grid-cols-5">
-        {learners.map((learner) => (
-          <div key={learner.id} className="group relative flex flex-col items-center gap-2">
-            <Link href={`/dashboard/learner/${learner.id}`} className="flex flex-col items-center gap-2">
-              <div
-                className="flex h-20 w-20 items-center justify-center rounded-2xl text-2xl font-bold text-white"
-                style={{ background: learner.avatar_color }}
-              >
-                {learner.display_name.slice(0, 1).toUpperCase()}
-              </div>
-              <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                {learner.display_name}
-              </span>
-              <span
-                className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
-                style={{ background: "var(--series-1)" }}
-              >
-                {learner.current_level_code}
-              </span>
-            </Link>
-            <button
-              onClick={() => removeLearner(learner.id)}
-              disabled={busy}
-              className="text-xs opacity-0 group-hover:opacity-100"
-              style={{ color: "var(--status-critical)" }}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {learners.map((learner) => {
+          const summary = summaries[learner.id];
+          const accuracyLabel =
+            summary && summary.overallAccuracy !== null ? `${Math.round(summary.overallAccuracy * 100)}%` : "未挑戦";
+          return (
+            <div
+              key={learner.id}
+              className="group relative flex flex-col gap-3 rounded-2xl border p-4"
+              style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}
             >
-              削除
-            </button>
-          </div>
-        ))}
+              <button
+                onClick={() => removeLearner(learner.id)}
+                disabled={busy}
+                className="absolute right-3 top-3 text-xs opacity-0 group-hover:opacity-100"
+                style={{ color: "var(--status-critical)" }}
+              >
+                削除
+              </button>
+
+              <Link href={`/dashboard/learner/${learner.id}`} className="flex items-center gap-3">
+                <div
+                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-xl font-bold text-white"
+                  style={{ background: learner.avatar_color }}
+                >
+                  {learner.display_name.slice(0, 1).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {learner.display_name}
+                  </p>
+                  <span
+                    className="mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold text-white"
+                    style={{ background: "var(--series-1)" }}
+                  >
+                    {learner.current_level_code}
+                  </span>
+                </div>
+              </Link>
+
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2 border-t pt-3 text-xs" style={{ borderColor: "var(--gridline)" }}>
+                <div>
+                  <p style={{ color: "var(--text-muted)" }}>総学習時間</p>
+                  <p className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {formatMinutesJa(summary?.totalMinutes ?? 0)}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ color: "var(--text-muted)" }}>連続学習日数</p>
+                  <p className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {summary && summary.streakDays > 0 ? `${summary.streakDays}日` : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ color: "var(--text-muted)" }}>正答率</p>
+                  <p className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {accuracyLabel}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ color: "var(--text-muted)" }}>最終学習</p>
+                  <p className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {formatLastActiveJa(summary?.lastActiveAt ?? null)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
 
         {!atCap && !adding && (
           <button
             onClick={() => setAdding(true)}
-            className="flex h-20 w-20 flex-col items-center justify-center gap-2 self-start rounded-2xl border-2 border-dashed text-2xl"
+            className="flex min-h-[9.5rem] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed text-2xl"
             style={{ borderColor: "var(--baseline)", color: "var(--text-muted)" }}
           >
             +

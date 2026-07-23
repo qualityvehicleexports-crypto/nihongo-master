@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { t, type Dictionary } from "@/lib/i18n";
+import StudyTimeTracker from "./StudyTimeTracker";
 
 interface QuizQuestion {
   id: string;
@@ -105,25 +106,41 @@ export default function QuizRunner({
     setPhase("results");
   }
 
+  // Rendered as a stable sibling below (not inside any of the phase-specific
+  // branches) so it stays mounted — and its accumulated-seconds ref stays
+  // intact — across phase transitions like loading -> answering -> results,
+  // which would otherwise each swap out the whole returned tree and reset it.
+  const tracker = <StudyTimeTracker learnerId={learnerId} activityType="quiz" levelId={levelId} />;
+
   if (phase === "loading") {
-    return <p style={{ color: "var(--text-secondary)" }}>{dict.quiz.loading}</p>;
+    return (
+      <>
+        {tracker}
+        <p style={{ color: "var(--text-secondary)" }}>{dict.quiz.loading}</p>
+      </>
+    );
   }
 
   if (phase === "error") {
     return (
-      <div className="flex flex-col gap-3">
-        <p style={{ color: "var(--status-critical)" }}>{errorMsg}</p>
-        <Link href={`/dashboard/learner/${learnerId}/level/${levelId}`} className="underline" style={{ color: "var(--brand)" }}>
-          {dict.quiz.backToLevel}
-        </Link>
-      </div>
+      <>
+        {tracker}
+        <div className="flex flex-col gap-3">
+          <p style={{ color: "var(--status-critical)" }}>{errorMsg}</p>
+          <Link href={`/dashboard/learner/${learnerId}/level/${levelId}`} className="underline" style={{ color: "var(--brand)" }}>
+            {dict.quiz.backToLevel}
+          </Link>
+        </div>
+      </>
     );
   }
 
   if (phase === "results" && results) {
     const correctCount = results.filter((r) => r.isCorrect).length;
     return (
-      <div className="flex flex-col gap-6">
+      <>
+        {tracker}
+        <div className="flex flex-col gap-6">
         <div className="rounded-2xl border p-6 text-center" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
             {t(dict.quiz.resultsOf, { name: learnerName })}
@@ -181,15 +198,18 @@ export default function QuizRunner({
           </Link>
         </div>
       </div>
+      </>
     );
   }
 
-  if (!current) return null;
+  if (!current) return tracker;
 
   const selectedIndex = selected[current.id];
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
+      {tracker}
+      <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between text-sm" style={{ color: "var(--text-secondary)" }}>
         <span>
           {levelId} ・ {CATEGORY_LABELS[current.category] ?? current.category}
@@ -240,6 +260,7 @@ export default function QuizRunner({
       >
         {phase === "submitting" ? dict.quiz.scoring : index === questions.length - 1 ? dict.quiz.scoreButton : dict.quiz.next}
       </button>
-    </div>
+      </div>
+    </>
   );
 }
