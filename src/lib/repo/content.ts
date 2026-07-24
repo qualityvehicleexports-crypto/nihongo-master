@@ -1,5 +1,6 @@
 import { all } from "../db";
 import type { LanguageCode } from "../i18n/languages";
+import { ensureDynamicVocabQuestions, ensureDynamicGrammarQuestions } from "./dynamicQuiz";
 
 export interface Level {
   id: string;
@@ -88,6 +89,18 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export async function getQuizSet(levelId: string, category?: string, limit = 10): Promise<QuizQuestion[]> {
+  // Lazily backfill vocabulary/grammar questions from the full vocab/grammar
+  // lists (~150-160 terms / ~30-35 patterns per level) the first time each
+  // level is quizzed, so repeat quizzes draw from a much bigger pool instead
+  // of cycling the same ~10 hand-authored questions. Idempotent — after the
+  // first call for a level these are no-ops (everything already covered).
+  // Listening/reading have no source list to generate from, so they're left
+  // to the static hand-authored bank.
+  await Promise.all([
+    !category || category === "vocabulary" ? ensureDynamicVocabQuestions(levelId) : Promise.resolve(),
+    !category || category === "grammar" ? ensureDynamicGrammarQuestions(levelId) : Promise.resolve(),
+  ]);
+
   const rows = category
     ? await all<QuizQuestionRow>("SELECT * FROM quiz_questions WHERE level_id = ? AND category = ?", [levelId, category])
     : await all<QuizQuestionRow>("SELECT * FROM quiz_questions WHERE level_id = ?", [levelId]);
