@@ -5,6 +5,7 @@ import { getLearner } from "@/lib/repo/learners";
 import { listGrammar, listVocab, localizedMeaning } from "@/lib/repo/content";
 import { getDictionary, t } from "@/lib/i18n";
 import StudyTimeTracker from "@/components/StudyTimeTracker";
+import { MOCK_EXAM_CONFIG, MOCK_EXAM_EDITIONS, getLatestMockExamAttempts } from "@/lib/repo/mockExam";
 
 export default async function LevelPage({
   params,
@@ -18,7 +19,12 @@ export default async function LevelPage({
   const learner = await getLearner(learnerId);
   if (!learner || learner.account_id !== session.accountId) notFound();
 
-  const [vocab, grammar] = await Promise.all([listVocab(levelCode), listGrammar(levelCode)]);
+  const hasMockExam = levelCode in MOCK_EXAM_CONFIG;
+  const [vocab, grammar, mockExamAttempts] = await Promise.all([
+    listVocab(levelCode),
+    listGrammar(levelCode),
+    hasMockExam ? getLatestMockExamAttempts(learnerId, levelCode) : Promise.resolve(new Map()),
+  ]);
   const dict = getDictionary(learner.ui_language);
 
   const CATEGORIES: { key: string; label: string; color: string }[] = [
@@ -68,6 +74,53 @@ export default async function LevelPage({
           </Link>
         </div>
       </div>
+
+      {hasMockExam && (
+        <div>
+          <h2 className="mb-1 text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+            {dict.mockExam.title}
+          </h2>
+          <p className="mb-3 text-sm" style={{ color: "var(--text-secondary)" }}>
+            {dict.mockExam.subtitle}
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {MOCK_EXAM_EDITIONS.map((n) => {
+              const attempt = mockExamAttempts.get(n);
+              const statusLabel = !attempt
+                ? dict.mockExam.statusNotTaken
+                : attempt.passed
+                  ? dict.mockExam.statusPassed
+                  : dict.mockExam.statusFailed;
+              const statusColor = !attempt
+                ? "var(--text-muted)"
+                : attempt.passed
+                  ? "var(--status-good)"
+                  : "var(--status-critical)";
+              return (
+                <Link
+                  key={n}
+                  href={`/dashboard/learner/${learnerId}/mock-exam?levelId=${levelCode}&edition=${n}`}
+                  className="flex flex-col gap-2 rounded-2xl border p-4"
+                  style={{ borderColor: "var(--border)", background: "var(--surface-1)", color: "var(--text-primary)" }}
+                >
+                  <span className="font-bold">{t(dict.mockExam.editionLabel, { n })}</span>
+                  <span className="text-xs font-semibold" style={{ color: statusColor }}>
+                    {statusLabel}
+                  </span>
+                  {attempt && (
+                    <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                      {t(dict.mockExam.scoreLabel, { total: attempt.totalScaled, max: attempt.totalMax })}
+                    </span>
+                  )}
+                  <span className="mt-1 text-xs font-semibold" style={{ color: "var(--brand)" }}>
+                    {attempt ? dict.mockExam.retake : dict.mockExam.start}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="rounded-2xl border p-5" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>

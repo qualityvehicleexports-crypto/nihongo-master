@@ -101,9 +101,17 @@ export async function getQuizSet(levelId: string, category?: string, limit = 10)
     !category || category === "grammar" ? ensureDynamicGrammarQuestions(levelId) : Promise.resolve(),
   ]);
 
+  // AND mock_exam_edition IS NULL — rows generated for a mock exam (see
+  // repo/mockExam.ts) are tagged with an edition number and must never leak
+  // into a regular practice quiz draw.
   const rows = category
-    ? await all<QuizQuestionRow>("SELECT * FROM quiz_questions WHERE level_id = ? AND category = ?", [levelId, category])
-    : await all<QuizQuestionRow>("SELECT * FROM quiz_questions WHERE level_id = ?", [levelId]);
+    ? await all<QuizQuestionRow>(
+        "SELECT * FROM quiz_questions WHERE level_id = ? AND category = ? AND mock_exam_edition IS NULL",
+        [levelId, category],
+      )
+    : await all<QuizQuestionRow>("SELECT * FROM quiz_questions WHERE level_id = ? AND mock_exam_edition IS NULL", [
+        levelId,
+      ]);
 
   return shuffle(rows)
     .slice(0, limit)

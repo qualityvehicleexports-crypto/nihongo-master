@@ -44,9 +44,14 @@ export async function ensureDynamicVocabQuestions(levelId: string): Promise<void
     all<{ term: string; meaning_en: string }>("SELECT term, meaning_en FROM vocab_items WHERE level_id = ?", [
       levelId,
     ]),
-    all<{ prompt: string }>("SELECT prompt FROM quiz_questions WHERE level_id = ? AND category = 'vocabulary'", [
-      levelId,
-    ]),
+    // AND mock_exam_edition IS NULL — a term already used by a mock exam
+    // (see repo/mockExam.ts) must not count as "covered" here, or this
+    // practice pool silently loses that term (getQuizSet filters mock-exam
+    // rows out, so the only row for that term would become unreachable).
+    all<{ prompt: string }>(
+      "SELECT prompt FROM quiz_questions WHERE level_id = ? AND category = 'vocabulary' AND mock_exam_edition IS NULL",
+      [levelId],
+    ),
   ]);
 
   // Need at least 4 distinct terms to build a 4-choice question at all.
@@ -89,8 +94,10 @@ export async function ensureDynamicGrammarQuestions(levelId: string): Promise<vo
     all<{ pattern: string; meaning_en: string }>("SELECT pattern, meaning_en FROM grammar_items WHERE level_id = ?", [
       levelId,
     ]),
+    // AND mock_exam_edition IS NULL — see the matching comment in
+    // ensureDynamicVocabQuestions above.
     all<{ prompt: string; choices_json: string; correct_index: number }>(
-      "SELECT prompt, choices_json, correct_index FROM quiz_questions WHERE level_id = ? AND category = 'grammar'",
+      "SELECT prompt, choices_json, correct_index FROM quiz_questions WHERE level_id = ? AND category = 'grammar' AND mock_exam_edition IS NULL",
       [levelId],
     ),
   ]);

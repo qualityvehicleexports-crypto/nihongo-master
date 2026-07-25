@@ -126,6 +126,7 @@ function runMigrations(database: Database) {
     "ALTER TABLE learners ADD COLUMN ui_language TEXT NOT NULL DEFAULT 'ja'",
     "ALTER TABLE vocab_items ADD COLUMN meanings_json TEXT NOT NULL DEFAULT '{}'",
     "ALTER TABLE grammar_items ADD COLUMN meanings_json TEXT NOT NULL DEFAULT '{}'",
+    "ALTER TABLE quiz_questions ADD COLUMN mock_exam_edition INTEGER",
   ];
   for (const stmt of statements) {
     try {

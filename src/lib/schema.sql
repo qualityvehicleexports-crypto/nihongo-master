@@ -66,7 +66,12 @@ CREATE TABLE IF NOT EXISTS quiz_questions (
   prompt TEXT NOT NULL,
   choices_json TEXT NOT NULL, -- JSON array of strings
   correct_index INTEGER NOT NULL,
-  explanation TEXT
+  explanation TEXT,
+  -- NULL for the regular practice-quiz pool. Set to 1-5 for a question that
+  -- belongs to one of the 5 mock-exam editions (第1回〜第5回) — see
+  -- src/lib/repo/mockExam.ts. getQuizSet() filters these out so mock-exam
+  -- content never leaks into a regular practice quiz.
+  mock_exam_edition INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS quiz_attempts (
@@ -100,10 +105,31 @@ CREATE TABLE IF NOT EXISTS study_sessions (
   ended_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- One row per completed mock exam ("模擬試験") attempt. Deliberately separate
+-- from quiz_attempts: the mock exam's pass-probability prediction is based
+-- only on the mock exam's own score (never blended with regular practice-quiz
+-- history), so its results are never written into quiz_attempts and never
+-- touch weakItems/streak/the trend-based pace.passProbabilityPercent in
+-- src/lib/ai.ts — those stay exactly as they were before this feature.
+CREATE TABLE IF NOT EXISTS mock_exam_attempts (
+  id TEXT PRIMARY KEY,
+  learner_id TEXT NOT NULL REFERENCES learners(id) ON DELETE CASCADE,
+  level_id TEXT NOT NULL,
+  edition INTEGER NOT NULL, -- 1-5 (第1回〜第5回)
+  section_scores_json TEXT NOT NULL, -- JSON array of per-section score breakdowns
+  total_scaled INTEGER NOT NULL,
+  total_max INTEGER NOT NULL DEFAULT 180,
+  passed INTEGER NOT NULL, -- 0 | 1
+  pass_probability_percent INTEGER NOT NULL,
+  taken_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_learners_account ON learners(account_id);
 CREATE INDEX IF NOT EXISTS idx_attempts_learner ON quiz_attempts(learner_id);
 CREATE INDEX IF NOT EXISTS idx_questions_level ON quiz_questions(level_id, category);
+CREATE INDEX IF NOT EXISTS idx_questions_mock_edition ON quiz_questions(level_id, mock_exam_edition);
 CREATE INDEX IF NOT EXISTS idx_vocab_level ON vocab_items(level_id);
 CREATE INDEX IF NOT EXISTS idx_grammar_level ON grammar_items(level_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_learner ON study_sessions(learner_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_learner_ended ON study_sessions(learner_id, ended_at);
+CREATE INDEX IF NOT EXISTS idx_mock_attempts_learner ON mock_exam_attempts(learner_id, level_id);
