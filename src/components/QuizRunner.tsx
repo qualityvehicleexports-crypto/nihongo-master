@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { t, type Dictionary } from "@/lib/i18n";
 import StudyTimeTracker from "./StudyTimeTracker";
+import SpeakButton from "./SpeakButton";
 
 interface QuizQuestion {
   id: string;
@@ -162,8 +163,9 @@ export default function QuizRunner({
                   background: "var(--surface-1)",
                 }}
               >
-                <p className="whitespace-pre-line text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                  {q.prompt}
+                <p className="flex items-start gap-1.5 whitespace-pre-line text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                  <span>{q.prompt}</span>
+                  <SpeakButton text={q.prompt} dict={dict} size="sm" />
                 </p>
                 <p className="mt-2 text-sm">
                   <span style={{ color: r.isCorrect ? "var(--status-good)" : "var(--status-critical)" }}>
@@ -230,8 +232,9 @@ export default function QuizRunner({
       </div>
 
       <div className="rounded-2xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>
-        <p className="whitespace-pre-line text-lg font-medium" style={{ color: "var(--text-primary)" }}>
-          {current.prompt}
+        <p className="flex items-start gap-2 whitespace-pre-line text-lg font-medium" style={{ color: "var(--text-primary)" }}>
+          <span>{current.prompt}</span>
+          <SpeakButton text={current.prompt} dict={dict} />
         </p>
       </div>
 
