@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { canAccessLearner, getSession } from "@/lib/auth";
 import { getLearner } from "@/lib/repo/learners";
 import { listGrammar, listVocab, localizedMeaning } from "@/lib/repo/content";
 import { getDictionary, t } from "@/lib/i18n";
@@ -17,7 +17,7 @@ export default async function LevelPage({
   if (!session) redirect("/login");
 
   const learner = await getLearner(learnerId);
-  if (!learner || learner.account_id !== session.accountId) notFound();
+  if (!learner || !canAccessLearner(session, learner)) notFound();
 
   const hasMockExam = levelCode in MOCK_EXAM_CONFIG;
   const [vocab, grammar, mockExamAttempts] = await Promise.all([

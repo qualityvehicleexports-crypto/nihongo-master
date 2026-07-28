@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { handleApiError, requireAccount, requireOwnedLearner } from "@/lib/api-helpers";
+import { handleApiError, requireLearnerAccess } from "@/lib/api-helpers";
 import { getQuestionById } from "@/lib/repo/content";
 import { scoreMockExam, recordMockExamAttempt, MOCK_EXAM_EDITIONS } from "@/lib/repo/mockExam";
 
@@ -18,9 +18,8 @@ const SubmitSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const account = await requireAccount();
     const body = SubmitSchema.parse(await req.json());
-    await requireOwnedLearner(body.learnerId, account.id);
+    await requireLearnerAccess(body.learnerId);
 
     if (!MOCK_EXAM_EDITIONS.includes(body.edition)) {
       return NextResponse.json({ error: "edition must be one of 1-5" }, { status: 400 });

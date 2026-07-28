@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { handleApiError, requireAccount, requireOwnedLearner } from "@/lib/api-helpers";
+import { handleApiError, requireAccount, requireOwnedLearner, requireLearnerAccess } from "@/lib/api-helpers";
 import { deleteLearner, updateLearnerLevel, updateLearnerTarget, updateLearnerLanguage } from "@/lib/repo/learners";
 import { LANGUAGE_CODES } from "@/lib/i18n/languages";
 import { invalidateAnalyticsCache } from "@/lib/ai";
@@ -27,8 +27,10 @@ const UpdateSchema = z.object({
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const account = await requireAccount();
-    const learner = await requireOwnedLearner(id, account.id);
+    // Owner-or-self: the owner can adjust any of their learners' settings,
+    // and a learner may adjust their own (e.g. the UI language picker on
+    // their own home page) — never a sibling learner's.
+    const learner = await requireLearnerAccess(id);
     const body = UpdateSchema.parse(await req.json());
 
     if (body.currentLevelCode) {

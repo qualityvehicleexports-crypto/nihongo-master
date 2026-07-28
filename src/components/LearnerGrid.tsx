@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Learner } from "@/lib/repo/learners";
+import type { PublicLearner } from "@/lib/repo/learners";
 import type { LearnerSummaryCard } from "@/lib/dashboardSummary";
 import { LANGUAGES } from "@/lib/i18n/languages";
 
@@ -36,7 +36,7 @@ export default function LearnerGrid({
   maxLearners,
   initialSummaries,
 }: {
-  initialLearners: Learner[];
+  initialLearners: PublicLearner[];
   maxLearners: number;
   initialSummaries: Record<string, LearnerSummaryCard>;
 }) {
@@ -48,6 +48,17 @@ export default function LearnerGrid({
   const [uiLanguage, setUiLanguage] = useState("ja");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Credential-issuing panel: which learner's panel is open, custom
+  // ID/password overrides typed into it, and the plaintext creds just
+  // returned by the server (shown once — never retrievable again after
+  // this component unmounts, since only the bcrypt hash is persisted).
+  const [credPanelFor, setCredPanelFor] = useState<string | null>(null);
+  const [credLoginId, setCredLoginId] = useState("");
+  const [credPassword, setCredPassword] = useState("");
+  const [credBusy, setCredBusy] = useState(false);
+  const [credError, setCredError] = useState<string | null>(null);
+  const [issuedCreds, setIssuedCreds] = useState<Record<string, { loginId: string; password: string }>>({});
 
   const atCap = learners.length >= maxLearners;
 
@@ -87,6 +98,41 @@ export default function LearnerGrid({
     }
   }
 
+  function openCredPanel(id: string) {
+    setCredError(null);
+    setCredLoginId("");
+    setCredPassword("");
+    setCredPanelFor(credPanelFor === id ? null : id);
+  }
+
+  async function issueCredentials(id: string, reissue: boolean) {
+    if (reissue && !confirm("ログイン情報を再発行しますか？現在のIDとパスワードは使えなくなります。")) return;
+    setCredError(null);
+    setCredBusy(true);
+    try {
+      const body: { loginId?: string; password?: string } = {};
+      if (credLoginId.trim()) body.loginId = credLoginId.trim();
+      if (credPassword.trim()) body.password = credPassword.trim();
+
+      const res = await fetch(`/api/learners/${id}/credentials`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCredError(data.error ?? "発行に失敗しました。");
+        return;
+      }
+      setIssuedCreds((prev) => ({ ...prev, [id]: { loginId: data.loginId, password: data.password } }));
+      setLearners((prev) => prev.map((l) => (l.id === id ? { ...l, login_id: data.loginId } : l)));
+      setCredLoginId("");
+      setCredPassword("");
+    } finally {
+      setCredBusy(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -94,6 +140,7 @@ export default function LearnerGrid({
           const summary = summaries[learner.id];
           const accuracyLabel =
             summary && summary.overallAccuracy !== null ? `${Math.round(summary.overallAccuracy * 100)}%` : "未挑戦";
+          const issued = issuedCreds[learner.id];
           return (
             <div
               key={learner.id}
@@ -155,6 +202,79 @@ export default function LearnerGrid({
                   </p>
                 </div>
               </div>
+
+              <div className="flex items-center justify-between border-t pt-3 text-xs" style={{ borderColor: "var(--gridline)" }}>
+                <span style={{ color: "var(--text-muted)" }}>
+                  ログイン:{" "}
+                  {learner.login_id ? (
+                    <span className="font-mono font-semibold" style={{ color: "var(--text-primary)" }}>
+                      {learner.login_id}
+                    </span>
+                  ) : (
+                    "未発行"
+                  )}
+                </span>
+                <button
+                  onClick={() => openCredPanel(learner.id)}
+                  className="text-xs font-semibold"
+                  style={{ color: "var(--brand)" }}
+                >
+                  {learner.login_id ? "再発行" : "発行する"}
+                </button>
+              </div>
+
+              {credPanelFor === learner.id && (
+                <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
+                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    {learner.login_id
+                      ? "この学習者専用のログインID・パスワードを再発行します。空欄のままなら自動生成されます。"
+                      : "この学習者専用のログインID・パスワードを発行します。空欄のままなら自動生成されます。"}
+                  </p>
+                  <div className="mt-2 flex flex-col gap-2">
+                    <input
+                      value={credLoginId}
+                      onChange={(e) => setCredLoginId(e.target.value)}
+                      placeholder="ログインID（未入力で自動生成）"
+                      className="rounded-lg border px-2 py-1.5 text-xs"
+                      style={{ borderColor: "var(--border)" }}
+                    />
+                    <input
+                      value={credPassword}
+                      onChange={(e) => setCredPassword(e.target.value)}
+                      placeholder="パスワード（未入力で自動生成）"
+                      className="rounded-lg border px-2 py-1.5 text-xs"
+                      style={{ borderColor: "var(--border)" }}
+                    />
+                  </div>
+                  {credError && (
+                    <p className="mt-2 text-xs" style={{ color: "var(--status-critical)" }}>
+                      {credError}
+                    </p>
+                  )}
+                  <button
+                    onClick={() => issueCredentials(learner.id, Boolean(learner.login_id))}
+                    disabled={credBusy}
+                    className="mt-2 rounded-full px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                    style={{ background: "var(--brand)" }}
+                  >
+                    {credBusy ? "発行中..." : learner.login_id ? "再発行する" : "発行する"}
+                  </button>
+
+                  {issued && (
+                    <div className="mt-3 rounded-lg border p-3 text-xs" style={{ borderColor: "var(--brand)", background: "var(--surface-page)" }}>
+                      <p>
+                        ログインID: <span className="font-mono font-semibold">{issued.loginId}</span>
+                      </p>
+                      <p>
+                        パスワード: <span className="font-mono font-semibold">{issued.password}</span>
+                      </p>
+                      <p className="mt-2" style={{ color: "var(--status-warning)" }}>
+                        このパスワードは今しか表示されません。必ず控えてから学習者にお渡しください。
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
@@ -232,6 +352,9 @@ export default function LearnerGrid({
           </div>
         </form>
       )}
+      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+        「発行する」で学習者本人用のログインID・パスワードを作成できます。学習者はこのIDでログインすると、自分の学習内容だけを見ることができ、他の学習者の内容は見えません。所有者（このアカウント）はいつでも全員分を閲覧できます。
+      </p>
     </div>
   );
 }

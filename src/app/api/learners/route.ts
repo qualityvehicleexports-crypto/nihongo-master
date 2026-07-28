@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { handleApiError, requireAccount } from "@/lib/api-helpers";
-import { createLearner, LearnerCapReachedError, listLearners } from "@/lib/repo/learners";
+import { createLearner, LearnerCapReachedError, listLearners, toPublicLearner } from "@/lib/repo/learners";
 import { LANGUAGE_CODES } from "@/lib/i18n/languages";
 
 export async function GET() {
   try {
     const account = await requireAccount();
     const learners = await listLearners(account.id);
-    return NextResponse.json({ learners, maxLearners: account.max_learners });
+    return NextResponse.json({ learners: learners.map(toPublicLearner), maxLearners: account.max_learners });
   } catch (error) {
     return handleApiError(error);
   }
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       body.targetLevelCode ?? "N1",
       body.uiLanguage ?? "ja",
     );
-    return NextResponse.json({ learner });
+    return NextResponse.json({ learner: toPublicLearner(learner) });
   } catch (error) {
     if (error instanceof LearnerCapReachedError) {
       return NextResponse.json({ error: error.message }, { status: 403 });

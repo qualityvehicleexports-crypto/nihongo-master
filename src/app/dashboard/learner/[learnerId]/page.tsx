@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { canAccessLearner, getSession } from "@/lib/auth";
 import { getLearner } from "@/lib/repo/learners";
 import { listLevels } from "@/lib/repo/content";
 import { getAnalytics } from "@/lib/ai";
@@ -21,7 +21,8 @@ export default async function LearnerHomePage({ params }: { params: Promise<{ le
   if (!session) redirect("/login");
 
   const learner = await getLearner(learnerId);
-  if (!learner || learner.account_id !== session.accountId) notFound();
+  if (!learner || !canAccessLearner(session, learner)) notFound();
+  const isOwnerSession = session.role === "owner";
 
   const [levels, analytics] = await Promise.all([listLevels(), getAnalytics(learnerId)]);
   const dict = getDictionary(learner.ui_language);
@@ -54,9 +55,11 @@ export default async function LearnerHomePage({ params }: { params: Promise<{ le
           >
             {dict.learnerHome.aiAnalysis}
           </Link>
-          <Link href="/dashboard" className="rounded-full border px-4 py-2 text-sm" style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}>
-            {dict.learnerHome.backToProfiles}
-          </Link>
+          {isOwnerSession && (
+            <Link href="/dashboard" className="rounded-full border px-4 py-2 text-sm" style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}>
+              {dict.learnerHome.backToProfiles}
+            </Link>
+          )}
         </div>
       </div>
 

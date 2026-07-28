@@ -27,6 +27,17 @@ CREATE TABLE IF NOT EXISTS learners (
   -- ISO 639-1/639-3-ish code for the learner's own UI + meaning language.
   -- One of: ja, en, vi, id, tl, my, zh, ne, km, mn, th, si. See src/lib/i18n/languages.ts.
   ui_language TEXT NOT NULL DEFAULT 'ja',
+  -- Per-learner sign-in credentials, issued by the account owner (see
+  -- POST /api/learners/[id]/credentials) so each of up to max_learners
+  -- people can log in directly with their own ID/password instead of
+  -- sharing the owner's account login. Both stay NULL until credentials are
+  -- issued; a learner with no login_id can still be reached via the
+  -- owner's own session, just not by signing in independently.
+  -- Uniqueness is enforced globally (not just within the account) via
+  -- idx_learners_login_id below, since the shared login screen looks up a
+  -- login_id with no account context yet.
+  login_id TEXT,
+  password_hash TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

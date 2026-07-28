@@ -6,7 +6,10 @@ import CheckoutButton from "@/components/CheckoutButton";
 
 export default async function BillingPage() {
   const session = await getSession();
-  const account = session ? await getAccountById(session.accountId) : null;
+  // Billing/plan management is owner-only — a learner session (individual
+  // login issued by the owner) sees this page the same as a logged-out
+  // visitor, never the account's subscription status or an upgrade button.
+  const account = session && session.role === "owner" ? await getAccountById(session.accountId) : null;
   const learnerCount = account ? await countLearners(account.id) : 0;
 
   return (

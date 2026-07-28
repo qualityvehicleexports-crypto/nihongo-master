@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { canAccessLearner, getSession } from "@/lib/auth";
 import { getLearner } from "@/lib/repo/learners";
 import MockExamRunner from "@/components/MockExamRunner";
 import { getDictionary } from "@/lib/i18n";
@@ -18,7 +18,7 @@ export default async function MockExamPage({
   if (!session) redirect("/login");
 
   const learner = await getLearner(learnerId);
-  if (!learner || learner.account_id !== session.accountId) notFound();
+  if (!learner || !canAccessLearner(session, learner)) notFound();
   if (!levelId || !(levelId in MOCK_EXAM_CONFIG)) notFound();
 
   const edition = Number(editionRaw);

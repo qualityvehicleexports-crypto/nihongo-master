@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { canAccessLearner, getSession } from "@/lib/auth";
 import { getLearner } from "@/lib/repo/learners";
 import QuizRunner from "@/components/QuizRunner";
 import { getDictionary } from "@/lib/i18n";
@@ -17,7 +17,7 @@ export default async function QuizPage({
   if (!session) redirect("/login");
 
   const learner = await getLearner(learnerId);
-  if (!learner || learner.account_id !== session.accountId) notFound();
+  if (!learner || !canAccessLearner(session, learner)) notFound();
   if (!levelId) notFound();
 
   return (

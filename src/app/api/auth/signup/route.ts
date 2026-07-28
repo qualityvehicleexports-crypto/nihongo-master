@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       await createLearner(account.id, body.firstLearnerName);
     }
 
-    const token = signSession({ accountId: account.id, email: account.email });
+    const token = signSession({ role: "owner", accountId: account.id, email: account.email });
     await setSessionCookie(token);
 
     return NextResponse.json({

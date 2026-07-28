@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handleApiError, requireAccount } from "@/lib/api-helpers";
+import { handleApiError, requireSession } from "@/lib/api-helpers";
 import { getQuizSet } from "@/lib/repo/content";
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAccount();
+    await requireSession();
     const { searchParams } = new URL(req.url);
     const levelId = searchParams.get("levelId");
     const category = searchParams.get("category") ?? undefined;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { handleApiError, requireAccount, requireOwnedLearner } from "@/lib/api-helpers";
+import { handleApiError, requireLearnerAccess } from "@/lib/api-helpers";
 import { getQuestionById } from "@/lib/repo/content";
 import { recordAttempt } from "@/lib/repo/quiz";
 import { invalidateAnalyticsCache } from "@/lib/ai";
@@ -17,9 +17,8 @@ const SubmitSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const account = await requireAccount();
     const body = SubmitSchema.parse(await req.json());
-    await requireOwnedLearner(body.learnerId, account.id);
+    await requireLearnerAccess(body.learnerId);
 
     const results = [];
     for (const answer of body.answers) {

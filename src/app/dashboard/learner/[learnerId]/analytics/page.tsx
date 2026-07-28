@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { canAccessLearner, getSession } from "@/lib/auth";
 import { getLearner } from "@/lib/repo/learners";
 import { getAnalytics } from "@/lib/ai";
 import CategoryBarChart from "@/components/charts/CategoryBarChart";
@@ -19,7 +19,7 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ lear
   if (!session) redirect("/login");
 
   const learner = await getLearner(learnerId);
-  if (!learner || learner.account_id !== session.accountId) notFound();
+  if (!learner || !canAccessLearner(session, learner)) notFound();
 
   const analytics = await getAnalytics(learnerId);
   const dict = getDictionary(learner.ui_language);

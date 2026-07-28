@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handleApiError, requireAccount } from "@/lib/api-helpers";
+import { handleApiError, requireSession } from "@/lib/api-helpers";
 import { getMockExamQuestions, MOCK_EXAM_CONFIG, MOCK_EXAM_EDITIONS } from "@/lib/repo/mockExam";
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAccount();
+    await requireSession();
     const { searchParams } = new URL(req.url);
     const levelId = searchParams.get("levelId");
     const editionRaw = searchParams.get("edition");

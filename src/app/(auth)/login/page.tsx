@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -19,14 +19,20 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier, password }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "ログインに失敗しました。");
         return;
       }
-      router.push("/dashboard");
+      // Owners land on the profile grid; learners go straight to their own
+      // page — they never see the roster of everyone under the account.
+      if (data.role === "learner") {
+        router.push(`/dashboard/learner/${data.learner.id}`);
+      } else {
+        router.push("/dashboard");
+      }
       router.refresh();
     } finally {
       setLoading(false);
@@ -40,15 +46,19 @@ export default function LoginPage() {
       </h1>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span style={{ color: "var(--text-secondary)" }}>メールアドレス</span>
+        <span style={{ color: "var(--text-secondary)" }}>メールアドレス または ログインID</span>
         <input
-          type="email"
+          type="text"
           required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="username"
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
           className="rounded-lg border px-3 py-2"
           style={{ borderColor: "var(--border)" }}
         />
+        <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+          所有者の方はメールアドレス、学習者の方は発行されたログインIDを入力してください。
+        </span>
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
@@ -56,6 +66,7 @@ export default function LoginPage() {
         <input
           type="password"
           required
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="rounded-lg border px-3 py-2"

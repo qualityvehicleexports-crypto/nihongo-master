@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handleApiError, requireAccount, requireOwnedLearner } from "@/lib/api-helpers";
+import { handleApiError, requireLearnerAccess } from "@/lib/api-helpers";
 import { getLatestMockExamAttempts } from "@/lib/repo/mockExam";
 
 export async function GET(req: NextRequest) {
   try {
-    const account = await requireAccount();
     const { searchParams } = new URL(req.url);
     const learnerId = searchParams.get("learnerId");
     const levelId = searchParams.get("levelId");
@@ -12,7 +11,7 @@ export async function GET(req: NextRequest) {
     if (!learnerId || !levelId) {
       return NextResponse.json({ error: "learnerId and levelId are required" }, { status: 400 });
     }
-    await requireOwnedLearner(learnerId, account.id);
+    await requireLearnerAccess(learnerId);
 
     const latest = await getLatestMockExamAttempts(learnerId, levelId);
     const attempts = [...latest.entries()].map(([edition, row]) => ({

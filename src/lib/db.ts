@@ -127,12 +127,21 @@ function runMigrations(database: Database) {
     "ALTER TABLE vocab_items ADD COLUMN meanings_json TEXT NOT NULL DEFAULT '{}'",
     "ALTER TABLE grammar_items ADD COLUMN meanings_json TEXT NOT NULL DEFAULT '{}'",
     "ALTER TABLE quiz_questions ADD COLUMN mock_exam_edition INTEGER",
+    // Per-learner login credentials (see schema.sql's learners table comment).
+    // Plain ALTER TABLE ADD COLUMN can't carry a UNIQUE constraint in SQLite,
+    // so login_id is added bare here and the uniqueness index is created
+    // separately below, after the column is guaranteed to exist on every DB
+    // (brand-new, via CREATE TABLE in schema.sql, or pre-existing, via the
+    // ALTER TABLE immediately above — both run before this line either way).
+    "ALTER TABLE learners ADD COLUMN login_id TEXT",
+    "ALTER TABLE learners ADD COLUMN password_hash TEXT",
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_learners_login_id ON learners(login_id) WHERE login_id IS NOT NULL",
   ];
   for (const stmt of statements) {
     try {
       database.run(stmt);
     } catch {
-      // Column already exists — already migrated, nothing to do.
+      // Column/index already exists — already migrated, nothing to do.
     }
   }
 }

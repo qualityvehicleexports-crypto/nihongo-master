@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { handleApiError, requireAccount, requireOwnedLearner } from "@/lib/api-helpers";
+import { handleApiError, requireLearnerAccess } from "@/lib/api-helpers";
 import { recordStudySession } from "@/lib/repo/studyTime";
 import { invalidateAnalyticsCache } from "@/lib/ai";
 
@@ -18,9 +18,8 @@ const StudyTimeSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const account = await requireAccount();
     const body = StudyTimeSchema.parse(await req.json());
-    await requireOwnedLearner(body.learnerId, account.id);
+    await requireLearnerAccess(body.learnerId);
 
     await recordStudySession(body.learnerId, body.activityType, body.levelId, body.durationSeconds);
     // Study time feeds into the analytics narrative (pace/streak framing), so
