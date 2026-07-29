@@ -176,6 +176,7 @@ const ja: Dictionary = {
     correctAnswer: "正答: {answer}",
     backToLevelButton: "レベルページに戻る",
   },
+audio: { playPronunciation: "発音を再生", stopPronunciation: "停止", unsupported: "お使いの環境では音声再生に対応していません。" },  
 };
 
 export default ja;
