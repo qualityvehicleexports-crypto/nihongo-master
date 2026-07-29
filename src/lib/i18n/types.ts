@@ -177,4 +177,9 @@ export interface Dictionary {
     correctAnswer: string; // {answer}
     backToLevelButton: string;
   };
+ audio: {
+    playPronunciation: string;
+    stopPronunciation: string;
+    unsupported: string;
+  }; 
 }
