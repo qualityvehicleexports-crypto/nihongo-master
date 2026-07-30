@@ -146,6 +146,7 @@ const my: Dictionary = {
   correctAnswer: "မှန်ကန်သောအဖြေ- {answer}",
   backToLevelButton: "အဆင့်စာမျက်နှာသို့ ပြန်သွားရန်",
 },
+    audio: { playPronunciation: "အသံထွက် ဖွင့်ပါ", stopPronunciation: "ရပ်ပါ", unsupported: "ဤဘရောက်ဇာသည် အသံဖွင့်ခြင်းကို ပံ့ပိုးမပေးပါ။" },
 };
 
 export default my;
