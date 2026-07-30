@@ -57,7 +57,9 @@ export default function LoginPage() {
           style={{ borderColor: "var(--border)" }}
         />
         <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-          所有者の方はメールアドレス、学習者の方は発行されたログインIDを入力してください。
+          <strong>管理者（保護者）の方：</strong>新規登録のときに使ったメールアドレスが、そのままログインIDになります（新しく作る必要はありません）。
+          <br />
+          <strong>学習者の方：</strong>管理者から発行された専用のログインID（半角英数字・.・_・- のみ、3〜40文字）を入力してください。
         </span>
       </label>
 
@@ -72,6 +74,11 @@ export default function LoginPage() {
           className="rounded-lg border px-3 py-2"
           style={{ borderColor: "var(--border)" }}
         />
+        <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+          <strong>管理者（保護者）の方：</strong>新規登録のときに設定した8文字以上のパスワードです。
+          <br />
+          <strong>学習者の方：</strong>管理者から発行された6文字以上のパスワードです。
+        </span>
       </label>
 
       {error && (
