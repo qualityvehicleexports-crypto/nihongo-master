@@ -174,6 +174,7 @@ const en: Dictionary = {
     correctAnswer: "Correct answer: {answer}",
     backToLevelButton: "Back to level page",
   },
+  audio: { playPronunciation: "Play pronunciation", stopPronunciation: "Stop", unsupported: "Audio playback isn't supported in this browser." },
 };
 
 export default en;
