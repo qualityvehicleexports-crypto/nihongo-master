@@ -38,13 +38,16 @@ export default async function BillingPage() {
 
         <div className="rounded-2xl border p-8" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>
           <p className="text-sm font-semibold" style={{ color: "var(--brand)" }}>
-            ファミリー・チームプラン
+            法人・教育機関プラン
           </p>
           <p className="mt-2 text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
-            ¥2,980<span className="text-base font-normal" style={{ color: "var(--text-secondary)" }}>/月</span>
+            ¥9,800<span className="text-base font-normal" style={{ color: "var(--text-secondary)" }}>/月</span>
+          </p>
+          <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+            送り出し機関・現地日本語学校・特定技能人材の就労支援団体でのご利用に対応しています。
           </p>
           <ul className="mt-6 flex flex-col gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
-            <li>✓ 1アカウントで学習者プロフィールを最大20人まで作成可能</li>
+            <li>✓ 1アカウントで学習者（技能実習生・特定技能人材など）プロフィールを最大20人まで作成可能</li>
             <li>✓ N5〜N1 全レベルの語彙・文法・聴解・読解コンテンツ</li>
             <li>✓ AIによる弱点分析・学習ペース予測・次の学習内容レコメンド</li>
             <li>✓ 学習者ごとの個別進捗管理</li>
