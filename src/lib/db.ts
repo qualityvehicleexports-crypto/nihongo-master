@@ -100,6 +100,7 @@ export async function getDb(): Promise<Database> {
     // grammar_items rows inserted before meanings_json existed, so ensureSeeded()'s
     // "only seed an empty DB" guard skips them. Backfill separately, idempotently.
     await backfillMeaningsTranslations();
+    cleanupLegacyMeaningQuestions(database);
     persist();
 
     return database;
@@ -143,6 +144,108 @@ function runMigrations(database: Database) {
     } catch {
       // Column/index already exists — already migrated, nothing to do.
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// One-time (per row) cleanup for quiz_questions rows generated before
+// vocabulary/grammar "meaning recognition" questions ("「X」の意味はどれで
+// すか。") started storing their choices as term/pattern strings instead of
+// pre-baked English meaning text (see src/lib/repo/dynamicQuiz.ts,
+// src/lib/repo/mockExam.ts, and localizeQuizQuestions() in
+// src/lib/repo/content.ts). Those older rows show the same English text to
+// every learner regardless of ui_language — this deletes them so the normal
+// generation path regenerates them in the new, localizable format:
+//   - Regular practice-pool rows regenerate one-by-one the next time that
+//     level is quizzed (ensureDynamicVocabQuestions/ensureDynamicGrammarQuestions
+//     only fill in terms not already "covered" by an existing row).
+//   - Mock-exam rows are cleared for the whole level (all 5 editions, all
+//     categories) rather than row-by-row, because ensureMockExamQuestions()
+//     only checks "does this edition have ANY row yet" — a partial delete
+//     would leave it thinking that edition is already complete and skip
+//     regenerating it. mock_exam_attempts does not reference quiz_questions
+//     rows, so this never touches a learner's recorded mock exam history.
+// Safe to run on every boot: once a row is in the new format its choices are
+// term/pattern strings, which this detects and leaves untouched.
+// ---------------------------------------------------------------------------
+function cleanupLegacyMeaningQuestions(database: Database) {
+  interface Row {
+    id: string;
+    level_id: string;
+    category: string;
+    prompt: string;
+    choices_json: string;
+    mock_exam_edition: number | null;
+  }
+  const rows: Row[] = [];
+  {
+    const stmt = database.prepare(
+      "SELECT id, level_id, category, prompt, choices_json, mock_exam_edition FROM quiz_questions WHERE category IN ('vocabulary', 'grammar')",
+    );
+    while (stmt.step()) rows.push(stmt.getAsObject() as unknown as Row);
+    stmt.free();
+  }
+  if (rows.length === 0) return;
+
+  const vocabTermsByLevel = new Map<string, Set<string>>();
+  {
+    const stmt = database.prepare("SELECT level_id, term FROM vocab_items");
+    while (stmt.step()) {
+      const r = stmt.getAsObject() as unknown as { level_id: string; term: string };
+      if (!vocabTermsByLevel.has(r.level_id)) vocabTermsByLevel.set(r.level_id, new Set());
+      vocabTermsByLevel.get(r.level_id)!.add(r.term);
+    }
+    stmt.free();
+  }
+  const grammarPatternsByLevel = new Map<string, Set<string>>();
+  {
+    const stmt = database.prepare("SELECT level_id, pattern FROM grammar_items");
+    while (stmt.step()) {
+      const r = stmt.getAsObject() as unknown as { level_id: string; pattern: string };
+      if (!grammarPatternsByLevel.has(r.level_id)) grammarPatternsByLevel.set(r.level_id, new Set());
+      grammarPatternsByLevel.get(r.level_id)!.add(r.pattern);
+    }
+    stmt.free();
+  }
+
+  const idsToDelete: string[] = [];
+  const mockExamLevelsToWipe = new Set<string>();
+  const MEANING_QUESTION_SUFFIX = "」の意味はどれですか。";
+
+  for (const row of rows) {
+    if (!row.prompt.startsWith("「") || !row.prompt.endsWith(MEANING_QUESTION_SUFFIX)) continue;
+    const closingIndex = row.prompt.indexOf("」");
+    if (closingIndex <= 1) continue;
+    const term = row.prompt.slice(1, closingIndex);
+
+    const terms = row.category === "vocabulary" ? vocabTermsByLevel.get(row.level_id) : grammarPatternsByLevel.get(row.level_id);
+    if (!terms || !terms.has(term)) continue; // term/pattern no longer exists for this level — leave alone
+
+    let choices: unknown;
+    try {
+      choices = JSON.parse(row.choices_json);
+    } catch {
+      continue;
+    }
+    if (!Array.isArray(choices)) continue;
+    const alreadyNewFormat = choices.every((c) => typeof c === "string" && terms.has(c));
+    if (alreadyNewFormat) continue; // already localizable — nothing to do
+
+    if (row.mock_exam_edition === null) {
+      idsToDelete.push(row.id);
+    } else {
+      mockExamLevelsToWipe.add(row.level_id);
+    }
+  }
+
+  if (idsToDelete.length > 0) {
+    const placeholders = idsToDelete.map(() => "?").join(",");
+    database.run(`DELETE FROM quiz_questions WHERE id IN (${placeholders})`, idsToDelete as never);
+  }
+  for (const levelId of mockExamLevelsToWipe) {
+    database.run("DELETE FROM quiz_questions WHERE level_id = ? AND mock_exam_edition IS NOT NULL", [
+      levelId,
+    ] as never);
   }
 }
 
