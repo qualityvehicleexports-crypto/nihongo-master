@@ -65,15 +65,20 @@ export async function ensureDynamicVocabQuestions(levelId: string): Promise<void
     }
   }
 
-  const meaningPool = vocabItems.map((v) => v.meaning_en);
+  // Choices store the underlying TERM strings, not pre-baked English meaning
+  // text — this is what lets content.ts's localizeQuizQuestions() resolve
+  // the displayed choice text to whichever ui_language the learner reading
+  // this question actually has, instead of it being fixed at generation
+  // time for every learner regardless of language.
+  const termPool = vocabItems.map((v) => v.term);
   const missing = vocabItems.filter((v) => !covered.has(v.term));
   if (missing.length === 0) return;
 
   for (const v of missing) {
-    const distractors = pickDistractors(meaningPool, v.meaning_en, 3);
+    const distractors = pickDistractors(termPool, v.term, 3);
     if (distractors.length < 3) continue; // defensive: not enough variety to build 4 choices
-    const choices = shuffleInPlace([v.meaning_en, ...distractors]);
-    const correctIndex = choices.indexOf(v.meaning_en);
+    const choices = shuffleInPlace([v.term, ...distractors]);
+    const correctIndex = choices.indexOf(v.term);
     await run(
       `INSERT INTO quiz_questions (id, level_id, category, prompt, choices_json, correct_index, explanation)
        VALUES (?, ?, 'vocabulary', ?, ?, ?, ?)`,
@@ -119,15 +124,19 @@ export async function ensureDynamicGrammarQuestions(levelId: string): Promise<vo
     }
   }
 
-  const meaningPool = grammarItems.map((g) => g.meaning_en);
+  // See the matching comment in ensureDynamicVocabQuestions above — choices
+  // store the underlying grammar PATTERN strings, not pre-baked English
+  // meaning text, so they can be resolved into any learner's ui_language at
+  // read time.
+  const patternPool = grammarItems.map((g) => g.pattern);
   const missing = grammarItems.filter((g) => !covered.has(g.pattern));
   if (missing.length === 0) return;
 
   for (const g of missing) {
-    const distractors = pickDistractors(meaningPool, g.meaning_en, 3);
+    const distractors = pickDistractors(patternPool, g.pattern, 3);
     if (distractors.length < 3) continue;
-    const choices = shuffleInPlace([g.meaning_en, ...distractors]);
-    const correctIndex = choices.indexOf(g.meaning_en);
+    const choices = shuffleInPlace([g.pattern, ...distractors]);
+    const correctIndex = choices.indexOf(g.pattern);
     await run(
       `INSERT INTO quiz_questions (id, level_id, category, prompt, choices_json, correct_index, explanation)
        VALUES (?, ?, 'grammar', ?, ?, ?, ?)`,
