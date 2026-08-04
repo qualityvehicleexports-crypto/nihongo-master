@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handleApiError, requireSession } from "@/lib/api-helpers";
+import { handleApiError, requireLearnerAccess, requireSession } from "@/lib/api-helpers";
 import { getMockExamQuestions, MOCK_EXAM_CONFIG, MOCK_EXAM_EDITIONS } from "@/lib/repo/mockExam";
 
 export async function GET(req: NextRequest) {
@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
     const levelId = searchParams.get("levelId");
     const editionRaw = searchParams.get("edition");
     const edition = Number(editionRaw);
+    const learnerId = searchParams.get("learnerId");
 
     if (!levelId) {
       return NextResponse.json({ error: "levelId is required" }, { status: 400 });
@@ -22,7 +23,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unknown levelId" }, { status: 400 });
     }
 
-    const questions = await getMockExamQuestions(levelId, edition);
+    // See the matching comment in api/quiz/route.ts — learnerId only
+    // localizes the vocabulary/grammar sections' answer choices, so a
+    // missing/invalid one falls back to the default choice text rather than
+    // failing the whole request.
+    const learner = learnerId ? await requireLearnerAccess(learnerId).catch(() => null) : null;
+
+    const questions = await getMockExamQuestions(levelId, edition, learner?.ui_language);
     // Never leak the correct answer / explanation before submission.
     const sanitized = questions.map((q) => ({
       id: q.id,
