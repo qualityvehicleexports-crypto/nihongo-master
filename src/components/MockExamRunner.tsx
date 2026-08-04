@@ -106,7 +106,7 @@ export default function MockExamRunner({
   // presses start — no need to fetch twice).
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/mock-exam?levelId=${levelId}&edition=${edition}`)
+    fetch(`/api/mock-exam?levelId=${levelId}&edition=${edition}&learnerId=${learnerId}`)
       .then((res) => res.json())
       .then((data) => {
         if (cancelled) return;
@@ -128,7 +128,7 @@ export default function MockExamRunner({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [levelId, edition]);
+  }, [levelId, edition, learnerId]);
 
   function startExam() {
     if (questions.length === 0) return; // still loading — the start button is disabled until then
