@@ -2,6 +2,8 @@ import { all, run } from "../db";
 import { newId } from "../ids";
 import type { LevelCode } from "../content/seedData";
 import { MOCK_EXAM_READING_LISTENING } from "../content/mockExamData";
+import { localizeQuizQuestions } from "./content";
+import type { LanguageCode } from "../i18n/languages";
 
 // ---------------------------------------------------------------------------
 // Mock exams ("模擬試験") — 5 selectable editions (第1回〜第5回) per level,
@@ -196,16 +198,20 @@ async function ensureMockExamQuestions(levelId: string): Promise<void> {
     ? pickForEditions(grammarItems, config.grammarCount, missingEditions)
     : new Map<number, { pattern: string; meaning_en: string }[]>();
 
-  const vocabMeaningPool = vocabItems.map((v) => v.meaning_en);
-  const grammarMeaningPool = grammarItems.map((g) => g.meaning_en);
+  // Choices store the underlying term/pattern strings (not pre-baked English
+  // meaning text) — see the matching comment in dynamicQuiz.ts. This lets
+  // content.ts's localizeQuizQuestions() resolve the displayed choice text
+  // into whichever ui_language the learner taking this mock exam has.
+  const vocabTermPool = vocabItems.map((v) => v.term);
+  const grammarPatternPool = grammarItems.map((g) => g.pattern);
   const readingListening = MOCK_EXAM_READING_LISTENING[levelId] ?? [];
 
   for (const edition of missingEditions) {
     for (const v of vocabAssignment.get(edition) ?? []) {
-      const distractors = pickDistractors(vocabMeaningPool, v.meaning_en, 3);
+      const distractors = pickDistractors(vocabTermPool, v.term, 3);
       if (distractors.length < 3) continue;
-      const choices = shuffleInPlace([v.meaning_en, ...distractors]);
-      const correctIndex = choices.indexOf(v.meaning_en);
+      const choices = shuffleInPlace([v.term, ...distractors]);
+      const correctIndex = choices.indexOf(v.term);
       await run(
         `INSERT INTO quiz_questions (id, level_id, category, prompt, choices_json, correct_index, explanation, mock_exam_edition)
          VALUES (?, ?, 'vocabulary', ?, ?, ?, ?, ?)`,
@@ -222,10 +228,10 @@ async function ensureMockExamQuestions(levelId: string): Promise<void> {
     }
 
     for (const g of grammarAssignment.get(edition) ?? []) {
-      const distractors = pickDistractors(grammarMeaningPool, g.meaning_en, 3);
+      const distractors = pickDistractors(grammarPatternPool, g.pattern, 3);
       if (distractors.length < 3) continue;
-      const choices = shuffleInPlace([g.meaning_en, ...distractors]);
-      const correctIndex = choices.indexOf(g.meaning_en);
+      const choices = shuffleInPlace([g.pattern, ...distractors]);
+      const correctIndex = choices.indexOf(g.pattern);
       await run(
         `INSERT INTO quiz_questions (id, level_id, category, prompt, choices_json, correct_index, explanation, mock_exam_edition)
          VALUES (?, ?, 'grammar', ?, ?, ?, ?, ?)`,
@@ -282,14 +288,22 @@ interface QuizQuestionRow {
 
 const CATEGORY_ORDER = ["vocabulary", "grammar", "reading", "listening"];
 
-/** Ensures this edition's questions exist, then returns them in JLPT-like section order. */
-export async function getMockExamQuestions(levelId: string, edition: number): Promise<MockExamQuestion[]> {
+/** Ensures this edition's questions exist, then returns them in JLPT-like
+ * section order. `uiLanguage` localizes the vocabulary/grammar sections'
+ * answer choices into the requesting learner's language (see
+ * content.ts's localizeQuizQuestions) — reading/listening stay Japanese, as
+ * intended for those sections. */
+export async function getMockExamQuestions(
+  levelId: string,
+  edition: number,
+  uiLanguage?: LanguageCode | string | null,
+): Promise<MockExamQuestion[]> {
   await ensureMockExamQuestions(levelId);
   const rows = await all<QuizQuestionRow>(
     "SELECT * FROM quiz_questions WHERE level_id = ? AND mock_exam_edition = ?",
     [levelId, edition],
   );
-  return rows
+  const questions = rows
     .map((r) => ({
       id: r.id,
       levelId: r.level_id,
@@ -300,6 +314,8 @@ export async function getMockExamQuestions(levelId: string, edition: number): Pr
       explanation: r.explanation,
     }))
     .sort((a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category));
+
+  return localizeQuizQuestions(questions, uiLanguage);
 }
 
 export interface MockExamSectionResult {
