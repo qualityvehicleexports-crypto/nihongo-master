@@ -1,56 +1,76 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handleApiError, requireLearnerAccess, requireSession } from "@/lib/api-helpers";
-import { getMockExamQuestions, MOCK_EXAM_CONFIG, MOCK_EXAM_EDITIONS } from "@/lib/repo/mockExam";
+import { z } from "zod";
+import { handleApiError, requireLearnerAccess } from "@/lib/api-helpers";
+import { getQuestionById } from "@/lib/repo/content";
+import { scoreMockExam, recordMockExamAttempt, MOCK_EXAM_EDITIONS } from "@/lib/repo/mockExam";
 
-export async function GET(req: NextRequest) {
+const SubmitSchema = z.object({
+  learnerId: z.string(),
+  levelId: z.string(),
+  edition: z.number().int(),
+  answers: z.array(
+    z.object({
+      questionId: z.string(),
+      selectedIndex: z.number().int().min(0),
+    }),
+  ),
+});
+
+export async function POST(req: NextRequest) {
   try {
-    await requireSession();
-    const { searchParams } = new URL(req.url);
-    const levelId = searchParams.get("levelId");
-    const editionRaw = searchParams.get("edition");
-    const edition = Number(editionRaw);
-    const learnerId = searchParams.get("learnerId");
+    const body = SubmitSchema.parse(await req.json());
+    const learner = await requireLearnerAccess(body.learnerId);
 
-    if (!levelId) {
-      return NextResponse.json({ error: "levelId is required" }, { status: 400 });
-    }
-    if (!editionRaw || !MOCK_EXAM_EDITIONS.includes(edition)) {
+    if (!MOCK_EXAM_EDITIONS.includes(body.edition)) {
       return NextResponse.json({ error: "edition must be one of 1-5" }, { status: 400 });
     }
 
-    const config = MOCK_EXAM_CONFIG[levelId as keyof typeof MOCK_EXAM_CONFIG];
-    if (!config) {
-      return NextResponse.json({ error: "Unknown levelId" }, { status: 400 });
+    const results: {
+      questionId: string;
+      category: string;
+      isCorrect: boolean;
+      correctIndex: number;
+      explanation: string;
+    }[] = [];
+
+    for (const answer of body.answers) {
+      const question = await getQuestionById(answer.questionId, learner.ui_language);
+      if (!question) continue;
+      const isCorrect = answer.selectedIndex === question.correctIndex;
+      results.push({
+        questionId: question.id,
+        category: question.category,
+        isCorrect,
+        correctIndex: question.correctIndex,
+        explanation: question.explanation,
+      });
     }
 
-    // See the matching comment in api/quiz/route.ts — learnerId only
-    // localizes the vocabulary/grammar sections' answer choices, so a
-    // missing/invalid one falls back to the default choice text rather than
-    // failing the whole request.
-    const learner = learnerId ? await requireLearnerAccess(learnerId).catch(() => null) : null;
+    // Deliberately NOT recordAttempt()/quiz_attempts here — mock exam results
+    // stay fully separate from regular practice-quiz stats, weakItems, streak,
+    // and the trend-based pace.passProbabilityPercent in src/lib/ai.ts. This
+    // exam's pass-probability prediction is based only on this attempt's own
+    // score, computed below.
+    const score = scoreMockExam(
+      body.levelId,
+      results.map((r) => ({ category: r.category, isCorrect: r.isCorrect })),
+    );
 
-    const questions = await getMockExamQuestions(levelId, edition, learner?.ui_language);
-    // Never leak the correct answer / explanation before submission.
-    const sanitized = questions.map((q) => ({
-      id: q.id,
-      levelId: q.levelId,
-      category: q.category,
-      prompt: q.prompt,
-      choices: q.choices,
-    }));
+    await recordMockExamAttempt({
+      learnerId: body.learnerId,
+      levelId: body.levelId,
+      edition: body.edition,
+      score,
+    });
 
     return NextResponse.json({
-      questions: sanitized,
-      structure: {
-        sections: config.sections.map((s) => ({
-          key: s.key,
-          categories: s.categories,
-          maxScore: s.maxScore,
-          minPassScore: s.minPassScore,
-        })),
-        totalMax: config.totalMax,
-        totalPassMark: config.totalPassMark,
-      },
+      results: results.map((r) => ({
+        questionId: r.questionId,
+        isCorrect: r.isCorrect,
+        correctIndex: r.correctIndex,
+        explanation: r.explanation,
+      })),
+      score,
     });
   } catch (error) {
     return handleApiError(error);
