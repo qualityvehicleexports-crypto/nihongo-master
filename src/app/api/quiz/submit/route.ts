@@ -18,11 +18,11 @@ const SubmitSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const body = SubmitSchema.parse(await req.json());
-    await requireLearnerAccess(body.learnerId);
+    const learner = await requireLearnerAccess(body.learnerId);
 
     const results = [];
     for (const answer of body.answers) {
-      const question = await getQuestionById(answer.questionId);
+      const question = await getQuestionById(answer.questionId, learner.ui_language);
       if (!question) continue;
 
       const isCorrect = answer.selectedIndex === question.correctIndex;
