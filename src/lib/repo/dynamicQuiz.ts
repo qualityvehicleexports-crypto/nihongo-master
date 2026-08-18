@@ -96,9 +96,10 @@ export async function ensureDynamicVocabQuestions(levelId: string): Promise<void
 
 export async function ensureDynamicGrammarQuestions(levelId: string): Promise<void> {
   const [grammarItems, existingRows] = await Promise.all([
-    all<{ pattern: string; meaning_en: string }>("SELECT pattern, meaning_en FROM grammar_items WHERE level_id = ?", [
-      levelId,
-    ]),
+    all<{ pattern: string; meaning_en: string; example_sentence: string }>(
+      "SELECT pattern, meaning_en, example_sentence FROM grammar_items WHERE level_id = ?",
+      [levelId],
+    ),
     // AND mock_exam_edition IS NULL — see the matching comment in
     // ensureDynamicVocabQuestions above.
     all<{ prompt: string; choices_json: string; correct_index: number }>(
@@ -137,17 +138,18 @@ export async function ensureDynamicGrammarQuestions(levelId: string): Promise<vo
     if (distractors.length < 3) continue;
     const choices = shuffleInPlace([g.pattern, ...distractors]);
     const correctIndex = choices.indexOf(g.pattern);
+    // Second line shows the pattern used in a real sentence — a bare particle
+    // like 「ね」or「よ」means nothing in isolation, so without this the
+    // question is unanswerable from the prompt alone. content.ts's
+    // extractMeaningQuestionTerm() only reads the first line, so this stays
+    // fully compatible with localizeQuizQuestions().
+    const prompt = g.example_sentence
+      ? `「${g.pattern}」の意味はどれですか。\n例文：${g.example_sentence}`
+      : `「${g.pattern}」の意味はどれですか。`;
     await run(
       `INSERT INTO quiz_questions (id, level_id, category, prompt, choices_json, correct_index, explanation)
        VALUES (?, ?, 'grammar', ?, ?, ?, ?)`,
-      [
-        newId("q"),
-        levelId,
-        `「${g.pattern}」の意味はどれですか。`,
-        JSON.stringify(choices),
-        correctIndex,
-        `「${g.pattern}」= ${g.meaning_en}。`,
-      ],
+      [newId("q"), levelId, prompt, JSON.stringify(choices), correctIndex, `「${g.pattern}」= ${g.meaning_en}。`],
     );
   }
 }
