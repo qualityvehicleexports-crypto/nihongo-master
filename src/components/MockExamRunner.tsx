@@ -334,9 +334,17 @@ export default function MockExamRunner({
                     background: "var(--surface-1)",
                   }}
                 >
-                  <p className="flex items-start gap-1.5 whitespace-pre-line text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                  <p className="flex flex-wrap items-start gap-1.5 whitespace-pre-line text-sm font-medium" style={{ color: "var(--text-primary)" }}>
                     <span>{q.prompt}</span>
                     <SpeakButton text={q.prompt} dict={dict} size="sm" />
+                    {q.category === "vocabulary" && !r.isCorrect && (
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+                        style={{ background: "var(--status-critical)" }}
+                      >
+                        {dict.level.needsReview}
+                      </span>
+                    )}
                   </p>
                   <p className="mt-2 text-sm">
                     <span style={{ color: r.isCorrect ? "var(--status-good)" : "var(--status-critical)" }}>
