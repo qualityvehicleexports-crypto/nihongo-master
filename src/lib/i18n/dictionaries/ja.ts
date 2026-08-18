@@ -1,182 +1,186 @@
-// Japanese reference dictionary. This is the source of truth: every other
-// language file is a translation of this one, and its exact strings match
-// what already shipped before i18n existed (so existing "ja" learners see no
-// change). ja is also the default/fallback used for account-owner-facing
-// pages, which are out of scope for translation.
-import type { Dictionary } from "../types";
+// Flat, namespaced dictionary of every learner-facing UI string. Every
+// language file (dictionaries/*.ts) must implement this exact shape —
+// TypeScript will error on a missing key, which is the safety net for
+// translation completeness across 11 languages.
+//
+// Interpolation: strings containing {placeholders} are filled in by the
+// small `t()` helper in index.ts, e.g. t(dict, "level.backToHome", {name}).
 
-const ja: Dictionary = {
+export interface Dictionary {
   category: {
-    vocabulary: "語彙",
-    grammar: "文法",
-    listening: "聴解",
-    listeningFull: "聴解（文字起こし）",
-    reading: "読解",
-  },
+    vocabulary: string;
+    grammar: string;
+    listening: string;
+    listeningFull: string;
+    reading: string;
+  };
   learnerHome: {
-    currentLevel: "現在のレベル",
-    target: "目標",
-    aiAnalysis: "AI分析を見る",
-    backToProfiles: "プロフィール選択に戻る",
-    aiCoachNote: "AIコーチからのひとこと",
-    chooseLevel: "レベルを選ぶ",
-    accuracyWithCount: "正答率 {pct}%（{total}問）",
-    notAttempted: "未挑戦",
-  },
+    currentLevel: string;
+    target: string;
+    aiAnalysis: string;
+    backToProfiles: string;
+    aiCoachNote: string;
+    chooseLevel: string;
+    accuracyWithCount: string; // {pct} {total}
+    notAttempted: string;
+  };
   level: {
-    backToHome: "← {name} のホームに戻る",
-    levelSuffix: "レベル",
-    tryQuiz: "クイズに挑戦",
-    questionsCount: "10問に挑戦",
-    comprehensiveQuiz: "総合クイズ",
-    randomAllCategories: "全カテゴリーからランダム出題",
-    vocabListTitle: "語彙リスト（サンプル）",
-    grammarListTitle: "文法リスト（サンプル）",
-    example: "例：",
-  },
+    backToHome: string; // {name}
+    levelSuffix: string;
+    tryQuiz: string;
+    questionsCount: string; // {count}
+    comprehensiveQuiz: string;
+    randomAllCategories: string;
+    vocabListTitle: string;
+    grammarListTitle: string;
+    example: string;
+    needsReview: string;
+  };
   quiz: {
-    loading: "問題を読み込んでいます...",
-    noQuestionsFound: "この条件のクイズ問題が見つかりませんでした。",
-    loadFailed: "問題の読み込みに失敗しました。",
-    backToLevel: "レベルページに戻る",
-    resultsOf: "{name} さんの結果",
-    correct: "正解",
-    incorrect: "不正解",
-    correctAnswer: "正答: {answer}",
-    next: "次へ",
-    scoreButton: "採点する",
-    scoring: "採点中...",
-    aiAnalysis: "AI分析を見る",
-  },
+    loading: string;
+    noQuestionsFound: string;
+    loadFailed: string;
+    backToLevel: string;
+    resultsOf: string; // {name}
+    correct: string;
+    incorrect: string;
+    correctAnswer: string; // {answer}
+    next: string;
+    scoreButton: string;
+    scoring: string;
+    aiAnalysis: string;
+  };
   analytics: {
-    backToHome: "← {name} のホームに戻る",
-    title: "AI進捗分析",
-    refresh: "分析を更新",
-    refreshing: "更新中...",
-    coachAnalysis: "AIコーチの分析",
-    lastUpdated: "最終更新: {date}",
-    weakStrongTitle: "弱点・得意分野",
-    weakStrongSubtitle: "カテゴリー別の正答率",
-    paceTitle: "合格可能性・学習ペース予測",
-    trendTitle: "学習の推移（直近30日）",
-    trendSubtitle: "日ごとの正答率",
-    recommendationsTitle: "次のおすすめ学習内容",
-  },
+    backToHome: string; // {name}
+    title: string;
+    refresh: string;
+    refreshing: string;
+    coachAnalysis: string;
+    lastUpdated: string; // {date}
+    weakStrongTitle: string;
+    weakStrongSubtitle: string;
+    paceTitle: string;
+    trendTitle: string;
+    trendSubtitle: string;
+    recommendationsTitle: string;
+  };
   gauge: {
-    statusGood: "順調",
-    statusWarning: "もう少し",
-    statusSerious: "要復習",
-    statusCritical: "対策が必要",
-    weeksEstimate: "目標到達まで目安 約{weeks}週間。",
-  },
+    statusGood: string;
+    statusWarning: string;
+    statusSerious: string;
+    statusCritical: string;
+    weeksEstimate: string; // {weeks}
+  };
   lineChart: {
-    noData: "まだ学習記録がありません。クイズに挑戦すると、ここに日ごとの正答率が表示されます。",
-    showTable: "表で見る",
-    hideTable: "表を隠す",
-    tooltipAccuracy: "正答率 {pct}%（{correct}/{attempts}問）",
-    colDate: "日付",
-    colAttempts: "回答数",
-    colCorrect: "正答数",
-    colAccuracy: "正答率",
-  },
+    noData: string;
+    showTable: string;
+    hideTable: string;
+    tooltipAccuracy: string; // {pct} {correct} {attempts}
+    colDate: string;
+    colAttempts: string;
+    colCorrect: string;
+    colAccuracy: string;
+  };
   narrative: {
-    noAttempts: "まだクイズの記録がありません。まずはレベルを選んでクイズに挑戦してみましょう。AIが弱点と学習ペースを分析します。",
-    summary: "これまでに{total}問に取り組み、正答率は{acc}%です（学習日数: {days}日）。",
-    weakest: "特に{category}の正答率が低めなので、重点的に復習するのがおすすめです。",
-    strongest: "{category}は好調です。この調子を維持しましょう。",
-    paceKnown: "現在のペースでは、{target}到達まで目安で約{weeks}週間、合格可能性は約{pct}%と推定されます。",
-    paceUnknown: "学習ペースの予測には、もう少しクイズの記録が必要です。",
-    streak: "現在{days}日連続で学習を続けています。",
-    weakVocabItem: "特に単語「{term}」（{meaning}）を間違えやすいようなので、復習しましょう。",
-    weakGrammarItem: "文法では「{pattern}」（{meaning}）の理解を深めるのがおすすめです。",
-  },
+    noAttempts: string;
+    summary: string; // {total} {acc} {days}
+    weakest: string; // {category}
+    strongest: string; // {category}
+    paceKnown: string; // {target} {weeks} {pct}
+    paceUnknown: string;
+    streak: string; // {days}
+    weakVocabItem: string; // {term} {meaning}
+    weakGrammarItem: string; // {pattern} {meaning}
+  };
   studyTime: {
-    title: "学習時間",
-    totalLabel: "総学習時間",
-    todayLabel: "今日",
-    weekLabel: "今週",
-    streakLabel: "連続学習日数",
-    streakDays: "{days}日",
-    trendTitle: "学習時間の推移（直近30日）",
-    trendSubtitle: "日ごとの学習時間",
-    minutesUnit: "{minutes}分",
-    hoursMinutesUnit: "{hours}時間{minutes}分",
-    noStreak: "まだ学習記録がありません",
-    noData: "まだ学習時間の記録がありません。クイズや単語リストのページを開くと記録が始まります。",
-  },
+    title: string;
+    totalLabel: string;
+    todayLabel: string;
+    weekLabel: string;
+    streakLabel: string;
+    streakDays: string; // {days}
+    trendTitle: string;
+    trendSubtitle: string;
+    minutesUnit: string; // {minutes}
+    hoursMinutesUnit: string; // {hours} {minutes}
+    noStreak: string;
+    noData: string;
+  };
   weakItems: {
-    title: "苦手な単語・文法",
-    subtitle: "間違えることが多い項目です。重点的に復習しましょう。",
-    vocabTitle: "苦手な単語",
-    grammarTitle: "苦手な文法",
-    missedCount: "{count}回間違えました",
-    noWeakVocab: "苦手な単語はまだ見つかっていません。",
-    noWeakGrammar: "苦手な文法はまだ見つかっていません。",
-  },
+    title: string;
+    subtitle: string;
+    vocabTitle: string;
+    grammarTitle: string;
+    missedCount: string; // {count}
+    noWeakVocab: string;
+    noWeakGrammar: string;
+  };
   pace: {
-    levelReached: "目標レベルに到達済みです。維持のための復習を続けましょう。",
-    note: "現在のペースで学習を続けた場合の目安です（信頼度: {confidence}）。",
-    needMoreData: "問題演習の記録がまだ少ないため、予測にはあと数回のクイズが必要です。",
-    confidenceLow: "低",
-    confidenceMedium: "中",
-    confidenceHigh: "高",
-  },
+    levelReached: string;
+    note: string; // {confidence}
+    needMoreData: string;
+    confidenceLow: string;
+    confidenceMedium: string;
+    confidenceHigh: string;
+  };
   recommendations: {
-    reviewWeakestTitle: "{category} を重点的に復習",
-    reviewWeakestDescription: "直近の正答率は{pct}%です。同じカテゴリーの問題をもう一度解いて定着させましょう。",
-    tryComprehensiveTitle: "{level} の総合クイズに挑戦",
-    tryComprehensiveDescription: "まずは全カテゴリーのクイズを解いて、現在の実力を測りましょう。",
-    vocabReviewTitle: "{level} の語彙リストを復習",
-    vocabReviewDescription: "{count}語のうち、まだ自信がない単語を中心に見直しましょう。",
-    grammarReviewTitle: "{level} の文法パターンを復習",
-    grammarReviewDescription: "{count}個の文型を例文と一緒に確認しましょう。",
-    levelUpTitle: "{level} に進む準備ができています",
-    levelUpDescription: "{current} の正答率が安定しています。{level} のクイズも試してみましょう。",
-  },
+    reviewWeakestTitle: string; // {category}
+    reviewWeakestDescription: string; // {pct}
+    tryComprehensiveTitle: string; // {level}
+    tryComprehensiveDescription: string;
+    vocabReviewTitle: string; // {level}
+    vocabReviewDescription: string; // {count}
+    grammarReviewTitle: string; // {level}
+    grammarReviewDescription: string; // {count}
+    levelUpTitle: string; // {level}
+    levelUpDescription: string; // {current} {level}
+  };
   mockExam: {
-    title: "模擬試験",
-    subtitle: "実際のJLPTの出題構成・合格基準を参考にした模擬試験です。第1回〜第5回から選んで受験できます。",
-    editionLabel: "第{n}回",
-    statusNotTaken: "未受験",
-    statusPassed: "合格",
-    statusFailed: "不合格",
-    scoreLabel: "{total} / {max}点",
-    start: "受験する",
-    retake: "再挑戦する",
-    introTitle: "第{edition}回 模擬試験",
-    introDescription: "実際のJLPTと同じ形式で、語彙・文法・読解・聴解をまとめて出題します。時間の許すときに、途中で中断せず最後まで解いてみましょう。",
-    introQuestionCount: "全{count}問",
-    introSectionsLabel: "セクション構成",
-    introSectionKnowledgeReading: "言語知識・読解",
-    introSectionKnowledge: "言語知識（文字・語彙・文法）",
-    introSectionReading: "読解",
-    introSectionListening: "聴解",
-    introCaveat: "※ この模擬試験の採点は正答率をもとにした簡易的な換算です。実際のJLPTは項目応答理論（IRT）による採点のため、点数や合格可能性はあくまで目安としてご利用ください。",
-    startButton: "試験を始める",
-    loading: "問題を読み込んでいます...",
-    loadFailed: "問題の読み込みに失敗しました。",
-    backToLevel: "レベルページに戻る",
-    submitting: "採点中...",
-    submitButton: "採点する",
-    next: "次へ",
-    resultsTitle: "{name} さんの模擬試験結果",
-    totalScoreLabel: "総合得点",
-    passResult: "合格ライン到達",
-    failResult: "合格ラインに未到達",
-    passProbabilityTitle: "この模擬試験の結果からみた合格可能性",
-    passProbabilityCaveat: "※ 今回の模擬試験の得点のみをもとにした推定値です（普段のクイズの記録は含みません）。",
-    sectionBreakdownTitle: "セクション別の結果",
-    sectionScoreLine: "{scaled} / {max}点（正解 {correct}/{total}問）",
-    sectionPassed: "基準点クリア",
-    sectionFailed: "基準点未達",
-    sectionMinNote: "このセクションの合格基準は{min}点以上です。",
-    reviewTitle: "問題の見直し",
-    correct: "正解",
-    incorrect: "不正解",
-    correctAnswer: "正答: {answer}",
-    backToLevelButton: "レベルページに戻る",
-  },
-audio: { playPronunciation: "発音を再生", stopPronunciation: "停止", unsupported: "お使いの環境では音声再生に対応していません。" },  
-};
-
-export default ja;
+    title: string;
+    subtitle: string;
+    editionLabel: string; // {n}
+    statusNotTaken: string;
+    statusPassed: string;
+    statusFailed: string;
+    scoreLabel: string; // {total} {max}
+    start: string;
+    retake: string;
+    introTitle: string; // {edition}
+    introDescription: string;
+    introQuestionCount: string; // {count}
+    introSectionsLabel: string;
+    introSectionKnowledgeReading: string;
+    introSectionKnowledge: string;
+    introSectionReading: string;
+    introSectionListening: string;
+    introCaveat: string;
+    startButton: string;
+    loading: string;
+    loadFailed: string;
+    backToLevel: string;
+    submitting: string;
+    submitButton: string;
+    next: string;
+    resultsTitle: string; // {name}
+    totalScoreLabel: string;
+    passResult: string;
+    failResult: string;
+    passProbabilityTitle: string;
+    passProbabilityCaveat: string;
+    sectionBreakdownTitle: string;
+    sectionScoreLine: string; // {scaled} {max} {correct} {total}
+    sectionPassed: string;
+    sectionFailed: string;
+    sectionMinNote: string; // {min}
+    reviewTitle: string;
+    correct: string;
+    incorrect: string;
+    correctAnswer: string; // {answer}
+    backToLevelButton: string;
+  };
+  audio: {
+    playPronunciation: string;
+    stopPronunciation: string;
+    unsupported: string;
+  };
+}
