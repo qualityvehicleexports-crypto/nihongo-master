@@ -167,6 +167,14 @@ function runMigrations(database: Database) {
 //     rows, so this never touches a learner's recorded mock exam history.
 // Safe to run on every boot: once a row is in the new format its choices are
 // term/pattern strings, which this detects and leaves untouched.
+//
+// This same pass also catches a second, later migration: grammar
+// meaning-recognition rows that already store pattern-string choices (so
+// they passed the check above once already) but were generated before
+// dynamicQuiz.ts/mockExam.ts started appending an example-sentence line to
+// the prompt. A bare pattern like 「ね」means nothing without context, so
+// those rows are deleted here too and regenerate with the example line the
+// next time that level's quiz/mock-exam pool is touched.
 // ---------------------------------------------------------------------------
 function cleanupLegacyMeaningQuestions(database: Database) {
   interface Row {
@@ -228,8 +236,12 @@ function cleanupLegacyMeaningQuestions(database: Database) {
       continue;
     }
     if (!Array.isArray(choices)) continue;
-    const alreadyNewFormat = choices.every((c) => typeof c === "string" && terms.has(c));
-    if (alreadyNewFormat) continue; // already localizable — nothing to do
+    const choicesAreTerms = choices.every((c) => typeof c === "string" && terms.has(c));
+    // Grammar rows additionally need the "\n例文：" example-sentence line
+    // (see the comment above) to count as fully migrated; vocabulary terms
+    // are self-explanatory without one, so they only need the choices check.
+    const alreadyNewFormat = choicesAreTerms && (row.category !== "grammar" || row.prompt.includes("\n"));
+    if (alreadyNewFormat) continue; // already localizable (and, for grammar, has an example) — nothing to do
 
     if (row.mock_exam_edition === null) {
       idsToDelete.push(row.id);
