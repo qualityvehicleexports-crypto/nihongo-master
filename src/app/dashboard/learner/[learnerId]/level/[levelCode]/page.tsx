@@ -2,9 +2,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { canAccessLearner, getSession } from "@/lib/auth";
 import { getLearner } from "@/lib/repo/learners";
-import { listGrammar, listVocab, localizedMeaning } from "@/lib/repo/content";
+import { listGrammar, listVocab, localizedMeaning, getQuizCategoryCounts } from "@/lib/repo/content";
+import { getMissedVocabTerms } from "@/lib/repo/weakItems";
 import { getDictionary, t } from "@/lib/i18n";
 import StudyTimeTracker from "@/components/StudyTimeTracker";
+import SpeakButton from "@/components/SpeakButton";
 import { MOCK_EXAM_CONFIG, MOCK_EXAM_EDITIONS, getLatestMockExamAttempts } from "@/lib/repo/mockExam";
 
 export default async function LevelPage({
@@ -20,12 +22,19 @@ export default async function LevelPage({
   if (!learner || !canAccessLearner(session, learner)) notFound();
 
   const hasMockExam = levelCode in MOCK_EXAM_CONFIG;
-  const [vocab, grammar, mockExamAttempts] = await Promise.all([
+  const [vocab, grammar, mockExamAttempts, categoryCounts, missedVocabTerms] = await Promise.all([
     listVocab(levelCode),
     listGrammar(levelCode),
     hasMockExam ? getLatestMockExamAttempts(learnerId, levelCode) : Promise.resolve(new Map()),
+    getQuizCategoryCounts(levelCode),
+    getMissedVocabTerms(learnerId, levelCode),
   ]);
   const dict = getDictionary(learner.ui_language);
+  // Previously-missed terms surfaced first so review is a glance at the top
+  // of the list rather than a scroll/search through the full ~150+ words.
+  const sortedVocab = [...vocab].sort(
+    (a, b) => Number(missedVocabTerms.has(b.term)) - Number(missedVocabTerms.has(a.term)),
+  );
 
   const CATEGORIES: { key: string; label: string; color: string }[] = [
     { key: "vocabulary", label: dict.category.vocabulary, color: "var(--series-1)" },
@@ -59,7 +68,9 @@ export default async function LevelPage({
               style={{ background: c.color, borderColor: "var(--border)" }}
             >
               <span className="font-bold">{c.label}</span>
-              <span className="text-xs opacity-90">{dict.level.questionsCount}</span>
+              <span className="text-xs opacity-90">
+                {t(dict.level.questionsCount, { count: categoryCounts[c.key] ?? 0 })}
+              </span>
             </Link>
           ))}
           <Link
@@ -128,18 +139,31 @@ export default async function LevelPage({
             {dict.level.vocabListTitle}
           </h3>
           <ul className="flex flex-col gap-2 text-sm">
-            {vocab.map((v) => (
-              <li key={v.id} className="flex flex-col border-b pb-2" style={{ borderColor: "var(--gridline)" }}>
-                <span style={{ color: "var(--text-primary)" }}>
-                  <span className="font-jp font-semibold">{v.term}</span>
-                  <span style={{ color: "var(--text-muted)" }}> （{v.reading}）</span> — {localizedMeaning(v, learner.ui_language)}
-                </span>
-                <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  {dict.level.example}
-                  {v.example_sentence}
-                </span>
-              </li>
-            ))}
+            {sortedVocab.map((v) => {
+              const needsReview = missedVocabTerms.has(v.term);
+              return (
+                <li key={v.id} className="flex flex-col border-b pb-2" style={{ borderColor: "var(--gridline)" }}>
+                  <span className="inline-flex flex-wrap items-center gap-1.5" style={{ color: "var(--text-primary)" }}>
+                    <span className="font-jp font-semibold">{v.term}</span>
+                    <span style={{ color: "var(--text-muted)" }}> （{v.reading}）</span> — {localizedMeaning(v, learner.ui_language)}
+                    <SpeakButton text={v.term} dict={dict} size="sm" />
+                    {needsReview && (
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+                        style={{ background: "var(--status-critical)" }}
+                      >
+                        {dict.level.needsReview}
+                      </span>
+                    )}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                    {dict.level.example}
+                    {v.example_sentence}
+                    <SpeakButton text={v.example_sentence} dict={dict} size="sm" />
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </div>
         <div className="rounded-2xl border p-5" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>
@@ -149,12 +173,14 @@ export default async function LevelPage({
           <ul className="flex flex-col gap-2 text-sm">
             {grammar.map((g) => (
               <li key={g.id} className="flex flex-col border-b pb-2" style={{ borderColor: "var(--gridline)" }}>
-                <span style={{ color: "var(--text-primary)" }}>
+                <span className="inline-flex items-center gap-1.5" style={{ color: "var(--text-primary)" }}>
                   <span className="font-semibold">{g.pattern}</span> — {localizedMeaning(g, learner.ui_language)}
+                  <SpeakButton text={g.pattern} dict={dict} size="sm" />
                 </span>
-                <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
                   {dict.level.example}
                   {g.example_sentence}
+                  <SpeakButton text={g.example_sentence} dict={dict} size="sm" />
                 </span>
               </li>
             ))}
