@@ -181,9 +181,10 @@ async function ensureMockExamQuestions(levelId: string): Promise<void> {
     all<{ term: string; meaning_en: string }>("SELECT term, meaning_en FROM vocab_items WHERE level_id = ?", [
       levelId,
     ]),
-    all<{ pattern: string; meaning_en: string }>("SELECT pattern, meaning_en FROM grammar_items WHERE level_id = ?", [
-      levelId,
-    ]),
+    all<{ pattern: string; meaning_en: string; example_sentence: string }>(
+      "SELECT pattern, meaning_en, example_sentence FROM grammar_items WHERE level_id = ?",
+      [levelId],
+    ),
   ]);
   // Not enough seed data to build 4-choice questions — leave this level's
   // mock exam without vocab/grammar sections rather than crashing; the
@@ -196,7 +197,7 @@ async function ensureMockExamQuestions(levelId: string): Promise<void> {
     : new Map<number, { term: string; meaning_en: string }[]>();
   const grammarAssignment = canBuildGrammar
     ? pickForEditions(grammarItems, config.grammarCount, missingEditions)
-    : new Map<number, { pattern: string; meaning_en: string }[]>();
+    : new Map<number, { pattern: string; meaning_en: string; example_sentence: string }[]>();
 
   // Choices store the underlying term/pattern strings (not pre-baked English
   // meaning text) — see the matching comment in dynamicQuiz.ts. This lets
@@ -232,18 +233,15 @@ async function ensureMockExamQuestions(levelId: string): Promise<void> {
       if (distractors.length < 3) continue;
       const choices = shuffleInPlace([g.pattern, ...distractors]);
       const correctIndex = choices.indexOf(g.pattern);
+      // See the matching comment in dynamicQuiz.ts's ensureDynamicGrammarQuestions —
+      // a bare particle/pattern means nothing without an example sentence for context.
+      const prompt = g.example_sentence
+        ? `「${g.pattern}」の意味はどれですか。\n例文：${g.example_sentence}`
+        : `「${g.pattern}」の意味はどれですか。`;
       await run(
         `INSERT INTO quiz_questions (id, level_id, category, prompt, choices_json, correct_index, explanation, mock_exam_edition)
          VALUES (?, ?, 'grammar', ?, ?, ?, ?, ?)`,
-        [
-          newId("mq"),
-          levelId,
-          `「${g.pattern}」の意味はどれですか。`,
-          JSON.stringify(choices),
-          correctIndex,
-          `「${g.pattern}」= ${g.meaning_en}。`,
-          edition,
-        ],
+        [newId("mq"), levelId, prompt, JSON.stringify(choices), correctIndex, `「${g.pattern}」= ${g.meaning_en}。`, edition],
       );
     }
 
