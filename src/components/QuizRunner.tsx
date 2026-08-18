@@ -1,269 +1,192 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { t, type Dictionary } from "@/lib/i18n";
-import StudyTimeTracker from "./StudyTimeTracker";
-import SpeakButton from "./SpeakButton";
+import { notFound, redirect } from "next/navigation";
+import { canAccessLearner, getSession } from "@/lib/auth";
+import { getLearner } from "@/lib/repo/learners";
+import { listGrammar, listVocab, localizedMeaning, getQuizCategoryCounts } from "@/lib/repo/content";
+import { getMissedVocabTerms } from "@/lib/repo/weakItems";
+import { getDictionary, t } from "@/lib/i18n";
+import StudyTimeTracker from "@/components/StudyTimeTracker";
+import SpeakButton from "@/components/SpeakButton";
+import { MOCK_EXAM_CONFIG, MOCK_EXAM_EDITIONS, getLatestMockExamAttempts } from "@/lib/repo/mockExam";
 
-interface QuizQuestion {
-  id: string;
-  levelId: string;
-  category: string;
-  prompt: string;
-  choices: string[];
-}
-
-interface SubmitResult {
-  questionId: string;
-  isCorrect: boolean;
-  correctIndex: number;
-  explanation: string;
-}
-
-type Phase = "loading" | "answering" | "submitting" | "results" | "error";
-
-export default function QuizRunner({
-  learnerId,
-  levelId,
-  category,
-  learnerName,
-  dict,
+export default async function LevelPage({
+  params,
 }: {
-  learnerId: string;
-  levelId: string;
-  category?: string;
-  learnerName: string;
-  dict: Dictionary;
+  params: Promise<{ learnerId: string; levelCode: string }>;
 }) {
-  const CATEGORY_LABELS: Record<string, string> = {
-    vocabulary: dict.category.vocabulary,
-    grammar: dict.category.grammar,
-    listening: dict.category.listening,
-    reading: dict.category.reading,
-  };
-  const [phase, setPhase] = useState<Phase>("loading");
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [index, setIndex] = useState(0);
-  const [selected, setSelected] = useState<Record<string, number>>({});
-  const [results, setResults] = useState<SubmitResult[] | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { learnerId, levelCode } = await params;
+  const session = await getSession();
+  if (!session) redirect("/login");
 
-  useEffect(() => {
-    let cancelled = false;
-    setPhase("loading");
-    const qs = new URLSearchParams({ levelId, count: "10", learnerId });
-    if (category) qs.set("category", category);
-    fetch(`/api/quiz?${qs.toString()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (cancelled) return;
-        if (!data.questions || data.questions.length === 0) {
-          setErrorMsg(dict.quiz.noQuestionsFound);
-          setPhase("error");
-          return;
-        }
-        setQuestions(data.questions);
-        setIndex(0);
-        setSelected({});
-        setResults(null);
-        setPhase("answering");
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setErrorMsg(dict.quiz.loadFailed);
-          setPhase("error");
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [levelId, category, learnerId]);
+  const learner = await getLearner(learnerId);
+  if (!learner || !canAccessLearner(session, learner)) notFound();
 
-  const current = questions[index];
+  const hasMockExam = levelCode in MOCK_EXAM_CONFIG;
+  const [vocab, grammar, mockExamAttempts, categoryCounts, missedVocabTerms] = await Promise.all([
+    listVocab(levelCode),
+    listGrammar(levelCode),
+    hasMockExam ? getLatestMockExamAttempts(learnerId, levelCode) : Promise.resolve(new Map()),
+    getQuizCategoryCounts(levelCode),
+    getMissedVocabTerms(learnerId, levelCode),
+  ]);
+  const dict = getDictionary(learner.ui_language);
+  // Previously-missed terms surfaced first so review is a glance at the top
+  // of the list rather than a scroll/search through the full ~150+ words.
+  const sortedVocab = [...vocab].sort(
+    (a, b) => Number(missedVocabTerms.has(b.term)) - Number(missedVocabTerms.has(a.term)),
+  );
 
-  function choose(choiceIndex: number) {
-    if (!current) return;
-    setSelected((prev) => ({ ...prev, [current.id]: choiceIndex }));
-  }
-
-  async function next() {
-    if (index < questions.length - 1) {
-      setIndex((i) => i + 1);
-      return;
-    }
-    // submit
-    setPhase("submitting");
-    const res = await fetch("/api/quiz/submit", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        learnerId,
-        answers: questions.map((q) => ({ questionId: q.id, selectedIndex: selected[q.id] })),
-      }),
-    });
-    const data = await res.json();
-    setResults(data.results);
-    setPhase("results");
-  }
-
-  // Rendered as a stable sibling below (not inside any of the phase-specific
-  // branches) so it stays mounted — and its accumulated-seconds ref stays
-  // intact — across phase transitions like loading -> answering -> results,
-  // which would otherwise each swap out the whole returned tree and reset it.
-  const tracker = <StudyTimeTracker learnerId={learnerId} activityType="quiz" levelId={levelId} />;
-
-  if (phase === "loading") {
-    return (
-      <>
-        {tracker}
-        <p style={{ color: "var(--text-secondary)" }}>{dict.quiz.loading}</p>
-      </>
-    );
-  }
-
-  if (phase === "error") {
-    return (
-      <>
-        {tracker}
-        <div className="flex flex-col gap-3">
-          <p style={{ color: "var(--status-critical)" }}>{errorMsg}</p>
-          <Link href={`/dashboard/learner/${learnerId}/level/${levelId}`} className="underline" style={{ color: "var(--brand)" }}>
-            {dict.quiz.backToLevel}
-          </Link>
-        </div>
-      </>
-    );
-  }
-
-  if (phase === "results" && results) {
-    const correctCount = results.filter((r) => r.isCorrect).length;
-    return (
-      <>
-        {tracker}
-        <div className="flex flex-col gap-6">
-        <div className="rounded-2xl border p-6 text-center" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            {t(dict.quiz.resultsOf, { name: learnerName })}
-          </p>
-          <p className="mt-1 text-4xl font-bold" style={{ color: "var(--brand)" }}>
-            {correctCount} / {results.length}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          {questions.map((q, i) => {
-            const r = results[i];
-            return (
-              <div
-                key={q.id}
-                className="rounded-2xl border p-4"
-                style={{
-                  borderColor: r.isCorrect ? "var(--status-good)" : "var(--status-critical)",
-                  background: "var(--surface-1)",
-                }}
-              >
-                <p className="flex items-start gap-1.5 whitespace-pre-line text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                  <span>{q.prompt}</span>
-                  <SpeakButton text={q.prompt} dict={dict} size="sm" />
-                </p>
-                <p className="mt-2 text-sm">
-                  <span style={{ color: r.isCorrect ? "var(--status-good)" : "var(--status-critical)" }}>
-                    {r.isCorrect ? dict.quiz.correct : dict.quiz.incorrect}
-                  </span>
-                  <span style={{ color: "var(--text-secondary)" }}> — {t(dict.quiz.correctAnswer, { answer: q.choices[r.correctIndex] })}</span>
-                </p>
-                {r.explanation && (
-                  <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
-                    {r.explanation}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href={`/dashboard/learner/${learnerId}/level/${levelId}`}
-            className="rounded-full border px-4 py-2 text-sm"
-            style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
-          >
-            {dict.quiz.backToLevel}
-          </Link>
-          <Link
-            href={`/dashboard/learner/${learnerId}/analytics`}
-            className="rounded-full px-4 py-2 text-sm font-semibold text-white"
-            style={{ background: "var(--brand)" }}
-          >
-            {dict.quiz.aiAnalysis}
-          </Link>
-        </div>
-      </div>
-      </>
-    );
-  }
-
-  if (!current) return tracker;
-
-  const selectedIndex = selected[current.id];
+  const CATEGORIES: { key: string; label: string; color: string }[] = [
+    { key: "vocabulary", label: dict.category.vocabulary, color: "var(--series-1)" },
+    { key: "grammar", label: dict.category.grammar, color: "var(--series-2)" },
+    { key: "listening", label: dict.category.listeningFull, color: "var(--series-3)" },
+    { key: "reading", label: dict.category.reading, color: "var(--series-4)" },
+  ];
 
   return (
-    <>
-      {tracker}
-      <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between text-sm" style={{ color: "var(--text-secondary)" }}>
-        <span>
-          {levelId} ・ {CATEGORY_LABELS[current.category] ?? current.category}
-        </span>
-        <span>
-          {index + 1} / {questions.length}
-        </span>
+    <div className="flex flex-col gap-8">
+      <StudyTimeTracker learnerId={learnerId} activityType="browse" levelId={levelCode} />
+      <div>
+        <Link href={`/dashboard/learner/${learnerId}`} className="text-sm" style={{ color: "var(--text-secondary)" }}>
+          {t(dict.level.backToHome, { name: learner.display_name })}
+        </Link>
+        <h1 className="mt-2 text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+          {levelCode} {dict.level.levelSuffix}
+        </h1>
       </div>
 
-      <div
-        className="h-1.5 w-full rounded-full"
-        style={{ background: "var(--gridline)" }}
-      >
-        <div
-          className="h-1.5 rounded-full transition-all"
-          style={{ width: `${((index + 1) / questions.length) * 100}%`, background: "var(--brand)" }}
-        />
-      </div>
-
-      <div className="rounded-2xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>
-        <p className="flex items-start gap-2 whitespace-pre-line text-lg font-medium" style={{ color: "var(--text-primary)" }}>
-          <span>{current.prompt}</span>
-          <SpeakButton text={current.prompt} dict={dict} />
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        {current.choices.map((choice, i) => (
-          <button
-            key={i}
-            onClick={() => choose(i)}
-            className="rounded-xl border px-4 py-3 text-left text-sm"
-            style={{
-              borderColor: selectedIndex === i ? "var(--brand)" : "var(--border)",
-              background: selectedIndex === i ? "rgba(42,120,214,0.08)" : "var(--surface-1)",
-              color: "var(--text-primary)",
-            }}
+      <div>
+        <h2 className="mb-3 text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+          {dict.level.tryQuiz}
+        </h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {CATEGORIES.map((c) => (
+            <Link
+              key={c.key}
+              href={`/dashboard/learner/${learnerId}/quiz?levelId=${levelCode}&category=${c.key}`}
+              className="flex flex-col gap-2 rounded-2xl border p-4 text-white"
+              style={{ background: c.color, borderColor: "var(--border)" }}
+            >
+              <span className="font-bold">{c.label}</span>
+              <span className="text-xs opacity-90">
+                {t(dict.level.questionsCount, { count: categoryCounts[c.key] ?? 0 })}
+              </span>
+            </Link>
+          ))}
+          <Link
+            href={`/dashboard/learner/${learnerId}/quiz?levelId=${levelCode}`}
+            className="flex flex-col gap-2 rounded-2xl border p-4"
+            style={{ borderColor: "var(--border)", background: "var(--surface-1)", color: "var(--text-primary)" }}
           >
-            {choice}
-          </button>
-        ))}
+            <span className="font-bold">{dict.level.comprehensiveQuiz}</span>
+            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+              {dict.level.randomAllCategories}
+            </span>
+          </Link>
+        </div>
       </div>
 
-      <button
-        onClick={next}
-        disabled={selectedIndex === undefined || phase === "submitting"}
-        className="self-end rounded-full px-6 py-2 font-semibold text-white disabled:opacity-40"
-        style={{ background: "var(--brand)" }}
-      >
-        {phase === "submitting" ? dict.quiz.scoring : index === questions.length - 1 ? dict.quiz.scoreButton : dict.quiz.next}
-      </button>
+      {hasMockExam && (
+        <div>
+          <h2 className="mb-1 text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+            {dict.mockExam.title}
+          </h2>
+          <p className="mb-3 text-sm" style={{ color: "var(--text-secondary)" }}>
+            {dict.mockExam.subtitle}
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {MOCK_EXAM_EDITIONS.map((n) => {
+              const attempt = mockExamAttempts.get(n);
+              const statusLabel = !attempt
+                ? dict.mockExam.statusNotTaken
+                : attempt.passed
+                  ? dict.mockExam.statusPassed
+                  : dict.mockExam.statusFailed;
+              const statusColor = !attempt
+                ? "var(--text-muted)"
+                : attempt.passed
+                  ? "var(--status-good)"
+                  : "var(--status-critical)";
+              return (
+                <Link
+                  key={n}
+                  href={`/dashboard/learner/${learnerId}/mock-exam?levelId=${levelCode}&edition=${n}`}
+                  className="flex flex-col gap-2 rounded-2xl border p-4"
+                  style={{ borderColor: "var(--border)", background: "var(--surface-1)", color: "var(--text-primary)" }}
+                >
+                  <span className="font-bold">{t(dict.mockExam.editionLabel, { n })}</span>
+                  <span className="text-xs font-semibold" style={{ color: statusColor }}>
+                    {statusLabel}
+                  </span>
+                  {attempt && (
+                    <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                      {t(dict.mockExam.scoreLabel, { total: attempt.totalScaled, max: attempt.totalMax })}
+                    </span>
+                  )}
+                  <span className="mt-1 text-xs font-semibold" style={{ color: "var(--brand)" }}>
+                    {attempt ? dict.mockExam.retake : dict.mockExam.start}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-6 sm:grid-cols-2">
+        <div className="rounded-2xl border p-5" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>
+          <h3 className="mb-3 font-bold" style={{ color: "var(--text-primary)" }}>
+            {dict.level.vocabListTitle}
+          </h3>
+          <ul className="flex flex-col gap-2 text-sm">
+            {sortedVocab.map((v) => {
+              const needsReview = missedVocabTerms.has(v.term);
+              return (
+                <li key={v.id} className="flex flex-col border-b pb-2" style={{ borderColor: "var(--gridline)" }}>
+                  <span className="inline-flex flex-wrap items-center gap-1.5" style={{ color: "var(--text-primary)" }}>
+                    <span className="font-jp font-semibold">{v.term}</span>
+                    <span style={{ color: "var(--text-muted)" }}> （{v.reading}）</span> — {localizedMeaning(v, learner.ui_language)}
+                    <SpeakButton text={v.term} dict={dict} size="sm" />
+                    {needsReview && (
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+                        style={{ background: "var(--status-critical)" }}
+                      >
+                        {dict.level.needsReview}
+                      </span>
+                    )}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                    {dict.level.example}
+                    {v.example_sentence}
+                    <SpeakButton text={v.example_sentence} dict={dict} size="sm" />
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+        <div className="rounded-2xl border p-5" style={{ borderColor: "var(--border)", background: "var(--surface-1)" }}>
+          <h3 className="mb-3 font-bold" style={{ color: "var(--text-primary)" }}>
+            {dict.level.grammarListTitle}
+          </h3>
+          <ul className="flex flex-col gap-2 text-sm">
+            {grammar.map((g) => (
+              <li key={g.id} className="flex flex-col border-b pb-2" style={{ borderColor: "var(--gridline)" }}>
+                <span className="inline-flex items-center gap-1.5" style={{ color: "var(--text-primary)" }}>
+                  <span className="font-semibold">{g.pattern}</span> — {localizedMeaning(g, learner.ui_language)}
+                  <SpeakButton text={g.pattern} dict={dict} size="sm" />
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                  {dict.level.example}
+                  {g.example_sentence}
+                  <SpeakButton text={g.example_sentence} dict={dict} size="sm" />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
