@@ -114,11 +114,17 @@ function shuffle<T>(arr: T[]): T[] {
 
 const MEANING_QUESTION_SUFFIX = "」の意味はどれですか。";
 
+// Only the first line carries the "「X」の意味はどれですか。" template — grammar
+// meaning-recognition questions append a second line with an example sentence
+// (see dynamicQuiz.ts/mockExam.ts) so a bare particle like 「ね」isn't shown
+// with zero context. Checking just the first line keeps this detector working
+// unchanged for both the older single-line format and the newer two-line one.
 function extractMeaningQuestionTerm(prompt: string): string | null {
-  if (!prompt.startsWith("「") || !prompt.endsWith(MEANING_QUESTION_SUFFIX)) return null;
-  const closingIndex = prompt.indexOf("」");
+  const firstLine = prompt.split("\n")[0];
+  if (!firstLine.startsWith("「") || !firstLine.endsWith(MEANING_QUESTION_SUFFIX)) return null;
+  const closingIndex = firstLine.indexOf("」");
   if (closingIndex <= 1) return null;
-  return prompt.slice(1, closingIndex);
+  return firstLine.slice(1, closingIndex);
 }
 
 interface TermMeaning {
@@ -182,6 +188,23 @@ export async function localizeQuizQuestions(
       explanation: `${term} = ${localizedMeaning(targetMeaning, uiLanguage)}`,
     };
   });
+}
+
+/** Total number of practice-pool questions available per category for a
+ * level (vocabulary/grammar counts reflect the full dynamically-generated
+ * pool, not just what's been lazily created so far — the ensure* calls make
+ * sure it's complete before counting). Used by the level page to show real
+ * "N問中10問に挑戦"-style counts on each category tab instead of a static
+ * placeholder. Mock-exam-only rows are excluded, matching getQuizSet(). */
+export async function getQuizCategoryCounts(levelId: string): Promise<Record<string, number>> {
+  await Promise.all([ensureDynamicVocabQuestions(levelId), ensureDynamicGrammarQuestions(levelId)]);
+  const rows = await all<{ category: string; cnt: number }>(
+    "SELECT category, COUNT(*) as cnt FROM quiz_questions WHERE level_id = ? AND mock_exam_edition IS NULL GROUP BY category",
+    [levelId],
+  );
+  const counts: Record<string, number> = {};
+  for (const r of rows) counts[r.category] = r.cnt;
+  return counts;
 }
 
 export async function getQuizSet(
