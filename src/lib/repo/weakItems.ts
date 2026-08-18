@@ -48,6 +48,47 @@ function extractQuoted(text: string): string[] {
   return matches.map((m) => m[1]);
 }
 
+/** Every vocab term at this level the learner has ever answered incorrectly
+ * at least once, as a Set of `vocab_items.term` strings — used by the level
+ * page to mark words in the reference vocab list for easy review, so a
+ * learner doesn't have to remember which words tripped them up in past
+ * quizzes. Unlike weakItemsForLearner() this isn't limited to the top N
+ * misses and only resolves vocabulary (not grammar), since it backs a
+ * simple "needs review" badge rather than a ranked weak-points summary. */
+export async function getMissedVocabTerms(learnerId: string, levelId: string): Promise<Set<string>> {
+  const [incorrectRows, vocabItems] = await Promise.all([
+    all<{ prompt: string; choices_json: string; correct_index: number }>(
+      `SELECT qq.prompt, qq.choices_json, qq.correct_index
+       FROM quiz_attempts qa JOIN quiz_questions qq ON qq.id = qa.question_id
+       WHERE qa.learner_id = ? AND qa.is_correct = 0 AND qq.category = 'vocabulary' AND qq.level_id = ?`,
+      [learnerId, levelId],
+    ),
+    all<{ term: string }>("SELECT term FROM vocab_items WHERE level_id = ?", [levelId]),
+  ]);
+
+  const vocabTerms = new Set(vocabItems.map((v) => v.term));
+  const missed = new Set<string>();
+  for (const row of incorrectRows) {
+    let matched = false;
+    for (const q of extractQuoted(row.prompt)) {
+      if (vocabTerms.has(q)) {
+        missed.add(q);
+        matched = true;
+      }
+    }
+    if (matched) continue;
+    let choices: string[] = [];
+    try {
+      choices = JSON.parse(row.choices_json) as string[];
+    } catch {
+      // fall through with empty choices
+    }
+    const correctChoice = choices[row.correct_index];
+    if (correctChoice && vocabTerms.has(correctChoice)) missed.add(correctChoice);
+  }
+  return missed;
+}
+
 export async function weakItemsForLearner(learnerId: string, limit = 5): Promise<WeakItems> {
   const [incorrectVocabRows, incorrectGrammarRows, vocabItems, grammarItems, attemptedVocabRows, attemptedGrammarRows] =
     await Promise.all([
