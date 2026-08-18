@@ -22,12 +22,13 @@ const my: Dictionary = {
     backToHome: "← {name} ၏ ပင်မစာမျက်နှာသို့ ပြန်သွားရန်",
     levelSuffix: "အဆင့်",
     tryQuiz: "စာမေးပွဲ စမ်းကြည့်ရန်",
-    questionsCount: "မေးခွန်း ၁၀ ခု",
+    questionsCount: "{count} ခုအနက် ၁၀ ခု",
     comprehensiveQuiz: "ပေါင်းစပ်စာမေးပွဲ",
     randomAllCategories: "အမျိုးအစားအားလုံးမှ ကျပန်းမေးခွန်းများ",
     vocabListTitle: "ဝေါဟာရစာရင်း (နမူနာ)",
     grammarListTitle: "သဒ္ဒါစာရင်း (နမူနာ)",
     example: "ဥပမာ-",
+    needsReview: "ပြန်လည်လေ့လာရန်",
   },
   quiz: {
     loading: "မေးခွန်းများ တင်နေသည်...",
@@ -146,7 +147,7 @@ const my: Dictionary = {
   correctAnswer: "မှန်ကန်သောအဖြေ- {answer}",
   backToLevelButton: "အဆင့်စာမျက်နှာသို့ ပြန်သွားရန်",
 },
-    audio: { playPronunciation: "အသံထွက် ဖွင့်ပါ", stopPronunciation: "ရပ်ပါ", unsupported: "ဤဘရောက်ဇာသည် အသံဖွင့်ခြင်းကို ပံ့ပိုးမပေးပါ။" },
+  audio: { playPronunciation: "အသံထွက် ဖွင့်ပါ", stopPronunciation: "ရပ်ပါ", unsupported: "ဤဘရောက်ဇာသည် အသံဖွင့်ခြင်းကို ပံ့ပိုးမပေးပါ။" },
 };
 
 export default my;
