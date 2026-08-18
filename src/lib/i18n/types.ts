@@ -28,12 +28,13 @@ export interface Dictionary {
     backToHome: string; // {name}
     levelSuffix: string;
     tryQuiz: string;
-    questionsCount: string;
+    questionsCount: string; // {count}
     comprehensiveQuiz: string;
     randomAllCategories: string;
     vocabListTitle: string;
     grammarListTitle: string;
     example: string;
+    needsReview: string;
   };
   quiz: {
     loading: string;
@@ -177,9 +178,9 @@ export interface Dictionary {
     correctAnswer: string; // {answer}
     backToLevelButton: string;
   };
- audio: {
+  audio: {
     playPronunciation: string;
     stopPronunciation: string;
     unsupported: string;
-  }; 
+  };
 }
