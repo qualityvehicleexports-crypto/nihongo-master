@@ -27,12 +27,13 @@ const ja: Dictionary = {
     backToHome: "← {name} のホームに戻る",
     levelSuffix: "レベル",
     tryQuiz: "クイズに挑戦",
-    questionsCount: "10問に挑戦",
+    questionsCount: "全{count}問中10問に挑戦",
     comprehensiveQuiz: "総合クイズ",
     randomAllCategories: "全カテゴリーからランダム出題",
     vocabListTitle: "語彙リスト（サンプル）",
     grammarListTitle: "文法リスト（サンプル）",
     example: "例：",
+    needsReview: "要復習",
   },
   quiz: {
     loading: "問題を読み込んでいます...",
@@ -176,8 +177,11 @@ const ja: Dictionary = {
     correctAnswer: "正答: {answer}",
     backToLevelButton: "レベルページに戻る",
   },
-audio: { playPronunciation: "発音を再生", stopPronunciation: "停止", unsupported: "お使いの環境では音声再生に対応していません。" },  
+  audio: {
+    playPronunciation: "発音を再生",
+    stopPronunciation: "停止",
+    unsupported: "お使いの環境では音声再生に対応していません。",
+  },
 };
 
-export default ja;
 export default ja;
