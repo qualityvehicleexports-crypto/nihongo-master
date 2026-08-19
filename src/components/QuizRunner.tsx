@@ -52,7 +52,6 @@ export default function QuizRunner({
   useEffect(() => {
     let cancelled = false;
     setPhase("loading");
-    const qs = new URLSearchParams({ levelId, count: "10" });
     const qs = new URLSearchParams({ levelId, count: "10", learnerId });
     if (category) qs.set("category", category);
     fetch(`/api/quiz?${qs.toString()}`)
@@ -79,7 +78,6 @@ export default function QuizRunner({
     return () => {
       cancelled = true;
     };
-  }, [levelId, category]);
   }, [levelId, category, learnerId]);
 
   const current = questions[index];
